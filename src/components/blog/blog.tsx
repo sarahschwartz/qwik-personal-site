@@ -45,6 +45,8 @@ export default component$(() => {
       >
         <Resource
           value={resource}
+          onPending={() => <div>Loading...</div>}
+          onRejected={() => <div>Failed to load weather</div>}
           onResolved={(blogs) => (
             <>
               {blogs.data.user.publication.posts.map(
