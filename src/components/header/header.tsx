@@ -1,34 +1,27 @@
-import { component$, useStylesScoped$ } from '@builder.io/qwik';
-import { QwikLogo } from '../icons/qwik';
+import { component$, useStyles$ } from '@builder.io/qwik';
+import { useLocation } from '@builder.io/qwik-city';
 import styles from './header.css?inline';
 
 export default component$(() => {
-  useStylesScoped$(styles);
+  useStyles$(styles);
+
+  const pathname = useLocation().pathname;
 
   return (
     <header>
-      <div class="logo">
-        <a href="https://qwik.builder.io/" target="_blank">
-          <QwikLogo />
-        </a>
+      <div class="header-inner">
+        <section class="logo">
+          <a href="/">Sarah Schwartz</a>
+        </section>
+        <nav>
+          <a href="#code" class={{ active: pathname.startsWith('/code') }}>
+            Code
+          </a>
+          <a href="#blog" class={{ active: pathname.startsWith('/blog') }}>
+            Blog
+          </a>
+        </nav>
       </div>
-      <ul>
-        <li>
-          <a href="https://qwik.builder.io/docs/components/overview/" target="_blank">
-            Docs
-          </a>
-        </li>
-        <li>
-          <a href="https://qwik.builder.io/examples/introduction/hello-world/" target="_blank">
-            Examples
-          </a>
-        </li>
-        <li>
-          <a href="https://qwik.builder.io/tutorial/welcome/overview/" target="_blank">
-            Tutorials
-          </a>
-        </li>
-      </ul>
     </header>
   );
 });

@@ -1,0 +1,82 @@
+.slider-container {
+	display: inline-flex;
+	overflow: hidden;
+	transform: translateX(0);
+	transition: transform 0.3s ease-out;
+	cursor: grab;
+	margin: 0 0 2rem 0;
+  }
+  
+  .slide {
+	margin: 2rem 0 0 0;
+	padding: 0;
+	max-height: 100vh;
+	width: 100vw;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	user-select: none;
+  }
+  
+  .btn {
+	background-color: #2d4b5f;
+	color: #fff;
+	text-decoration: none;
+	padding: 1rem 1.5rem;
+	border-radius: 8px;
+  }
+  
+  .grabbing {
+	cursor: grabbing;
+  }
+  
+  .code-description {
+	padding: 0 1rem;
+  }
+
+  .buttons-container{
+	display: flex;
+	gap: 10px;
+	justify-content: center;
+	margin-bottom: 2rem;
+  }
+
+  .inner-slide{
+	background-color: #f1eeee;
+	border-radius: 16px;
+	padding: 2rem;
+	max-width: 500px;
+  }
+
+  
+
+  .tags-container{
+	list-style: none;
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+	margin-top: 2rem;
+	font-family: Trebuchet, sans-serif;
+  }
+
+  .tag{
+	border-radius: 16px;
+	padding: 10px 20px;
+  }
+
+  .code-tag{
+	background-color: #9ECED9;
+  }
+
+  ul {
+	padding-inline-start: 0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+	.inner-slide{
+		background-color: #211e1e;
+	  }
+	  .code-tag{
+		background-color: #155462;
+	  }
+  }

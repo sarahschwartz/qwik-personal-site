@@ -1,0 +1,8 @@
+.about {
+    padding: 0 32px;
+    border-radius: 16px;
+    margin: 0 auto;
+    width: 80vw;
+    max-width: 500px;
+    text-align: center;
+}

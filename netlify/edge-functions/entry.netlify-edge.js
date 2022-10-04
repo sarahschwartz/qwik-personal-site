@@ -1365,10 +1365,10 @@ const executeWatchesAfter = async (containerState, watchPred) => {
   } while (containerState.$watchStaging$.size > 0);
 };
 const sortNodes = (elements) => {
-  elements.sort((a2, b) => 2 & a2.compareDocumentPosition(getRootNode(b)) ? 1 : -1);
+  elements.sort((a, b) => 2 & a.compareDocumentPosition(getRootNode(b)) ? 1 : -1);
 };
 const sortWatches = (watches) => {
-  watches.sort((a2, b) => a2.$el$ === b.$el$ ? a2.$index$ < b.$index$ ? -1 : 1 : 0 != (2 & a2.$el$.compareDocumentPosition(getRootNode(b.$el$))) ? 1 : -1);
+  watches.sort((a, b) => a.$el$ === b.$el$ ? a.$index$ < b.$index$ ? -1 : 1 : 0 != (2 & a.$el$.compareDocumentPosition(getRootNode(b.$el$))) ? 1 : -1);
 };
 const CONTAINER_STATE = Symbol("ContainerState");
 const getContainerState = (containerEl) => {
@@ -1564,7 +1564,7 @@ const _pauseFromContexts = async (allContexts, containerState) => {
         data: set ? Array.from(set) : null
       });
     }), subsObj.length > 0 && subsMap.set(obj, subsObj);
-  }), objs.sort((a2, b) => (subsMap.has(a2) ? 0 : 1) - (subsMap.has(b) ? 0 : 1));
+  }), objs.sort((a, b) => (subsMap.has(a) ? 0 : 1) - (subsMap.has(b) ? 0 : 1));
   let count = 0;
   for (const obj of objs) {
     objToId.set(obj, intToStr(count)), count++;
@@ -1860,19 +1860,6 @@ const useWatchQrl = (qrl, opts) => {
   const watch = new Watch(WatchFlagsIsDirty | WatchFlagsIsWatch, i, el, qrl, void 0);
   const elCtx = getContext(el);
   set(true), qrl.$resolveLazy$(containerState.$containerEl$), elCtx.$watches$ || (elCtx.$watches$ = []), elCtx.$watches$.push(watch), waitAndRun(ctx, () => runSubscriber(watch, containerState, ctx.$renderCtx$)), isServer$1() && useRunWatch(watch, opts == null ? void 0 : opts.eagerness);
-};
-const useClientEffectQrl = (qrl, opts) => {
-  var _a2;
-  const { get, set, i, ctx } = useSequentialScope();
-  if (get) {
-    return;
-  }
-  const el = ctx.$hostElement$;
-  const watch = new Watch(WatchFlagsIsEffect, i, el, qrl, void 0);
-  const eagerness = (_a2 = opts == null ? void 0 : opts.eagerness) != null ? _a2 : "visible";
-  const elCtx = getContext(el);
-  const containerState = ctx.$renderCtx$.$static$.$containerState$;
-  set(true), elCtx.$watches$ || (elCtx.$watches$ = []), elCtx.$watches$.push(watch), useRunWatch(watch, eagerness), isServer$1() || (qrl.$resolveLazy$(containerState.$containerEl$), notifyWatch(watch, containerState));
 };
 const isResourceWatch = (watch) => !!watch.$resource$;
 const runSubscriber = (watch, containerState, rctx) => (watch.$flags$, isResourceWatch(watch) ? runResource(watch, containerState) : runWatch(watch, containerState, rctx));
@@ -3070,113 +3057,8 @@ function useEnvData(key, defaultValue) {
   var _a2;
   return (_a2 = useInvokeContext().$renderCtx$.$static$.$containerState$.$envData$[key]) != null ? _a2 : defaultValue;
 }
-const STYLE_CACHE = /* @__PURE__ */ new Map();
-const getScopedStyles = (css, scopeId) => {
-  let styleCss = STYLE_CACHE.get(scopeId);
-  return styleCss || STYLE_CACHE.set(scopeId, styleCss = scopeStylesheet(css, scopeId)), styleCss;
-};
-const scopeStylesheet = (css, scopeId) => {
-  const end = css.length;
-  const out = [];
-  const stack = [];
-  let idx = 0;
-  let lastIdx = idx;
-  let mode = rule;
-  let lastCh = 0;
-  for (; idx < end; ) {
-    let ch = css.charCodeAt(idx++);
-    ch === BACKSLASH && (idx++, ch = A);
-    const arcs = STATE_MACHINE[mode];
-    for (let i = 0; i < arcs.length; i++) {
-      const arc = arcs[i];
-      const [expectLastCh, expectCh, newMode] = arc;
-      if ((expectLastCh === lastCh || expectLastCh === ANY || expectLastCh === IDENT && isIdent(lastCh) || expectLastCh === WHITESPACE && isWhiteSpace(lastCh)) && (expectCh === ch || expectCh === ANY || expectCh === IDENT && isIdent(ch) || expectCh === NOT_IDENT && !isIdent(ch) && ch !== DOT || expectCh === WHITESPACE && isWhiteSpace(ch)) && (3 == arc.length || lookAhead(arc))) {
-        if (arc.length > 3 && (ch = css.charCodeAt(idx - 1)), newMode === EXIT || newMode == EXIT_INSERT_SCOPE) {
-          newMode === EXIT_INSERT_SCOPE && (mode !== starSelector || shouldNotInsertScoping() ? isChainedSelector(ch) || insertScopingSelector(idx - (expectCh == NOT_IDENT ? 1 : expectCh == CLOSE_PARENTHESIS ? 2 : 0)) : (isChainedSelector(ch) ? flush(idx - 2) : insertScopingSelector(idx - 2), lastIdx++)), expectCh === NOT_IDENT && (idx--, ch = lastCh);
-          do {
-            mode = stack.pop() || rule, mode === pseudoGlobal && (flush(idx - 1), lastIdx++);
-          } while (isSelfClosingRule(mode));
-        } else {
-          stack.push(mode), mode === pseudoGlobal && newMode === rule ? (flush(idx - 8), lastIdx = idx) : newMode === pseudoElement && insertScopingSelector(idx - 2), mode = newMode;
-        }
-        break;
-      }
-    }
-    lastCh = ch;
-  }
-  return flush(idx), out.join("");
-  function flush(idx2) {
-    out.push(css.substring(lastIdx, idx2)), lastIdx = idx2;
-  }
-  function insertScopingSelector(idx2) {
-    mode === pseudoGlobal || shouldNotInsertScoping() || (flush(idx2), out.push(".", "\u2B50\uFE0F", scopeId));
-  }
-  function lookAhead(arc) {
-    let prefix = 0;
-    if (css.charCodeAt(idx) === DASH) {
-      for (let i = 1; i < 10; i++) {
-        if (css.charCodeAt(idx + i) === DASH) {
-          prefix = i + 1;
-          break;
-        }
-      }
-    }
-    words:
-      for (let arcIndx = 3; arcIndx < arc.length; arcIndx++) {
-        const txt = arc[arcIndx];
-        for (let i = 0; i < txt.length; i++) {
-          if ((css.charCodeAt(idx + i + prefix) | LOWERCASE) !== txt.charCodeAt(i)) {
-            continue words;
-          }
-        }
-        return idx += txt.length + prefix, true;
-      }
-    return false;
-  }
-  function shouldNotInsertScoping() {
-    return -1 !== stack.indexOf(pseudoGlobal) || -1 !== stack.indexOf(atRuleSelector);
-  }
-};
-const isIdent = (ch) => ch >= _0 && ch <= _9 || ch >= A && ch <= Z || ch >= a && ch <= z || ch >= 128 || ch === UNDERSCORE || ch === DASH;
-const isChainedSelector = (ch) => ch === COLON || ch === DOT || ch === OPEN_BRACKET || ch === HASH || isIdent(ch);
-const isSelfClosingRule = (mode) => mode === atRuleBlock || mode === atRuleSelector || mode === atRuleInert || mode === pseudoGlobal;
-const isWhiteSpace = (ch) => ch === SPACE || ch === TAB || ch === NEWLINE || ch === CARRIAGE_RETURN;
-const rule = 0;
-const starSelector = 2;
-const pseudoGlobal = 5;
-const pseudoElement = 6;
-const atRuleSelector = 10;
-const atRuleBlock = 11;
-const atRuleInert = 12;
-const EXIT = 17;
-const EXIT_INSERT_SCOPE = 18;
-const ANY = 0;
-const IDENT = 1;
-const NOT_IDENT = 2;
-const WHITESPACE = 3;
-const TAB = 9;
-const NEWLINE = 10;
-const CARRIAGE_RETURN = 13;
-const SPACE = 32;
-const HASH = 35;
-const CLOSE_PARENTHESIS = 41;
-const DASH = 45;
-const DOT = 46;
-const _0 = 48;
-const _9 = 57;
-const COLON = 58;
-const A = 65;
-const Z = 90;
-const OPEN_BRACKET = 91;
-const BACKSLASH = 92;
-const UNDERSCORE = 95;
-const LOWERCASE = 32;
-const a = 97;
-const z = 122;
-const STRINGS_COMMENTS = [[ANY, 39, 14], [ANY, 34, 15], [ANY, 47, 16, "*"]];
-const STATE_MACHINE = [[[ANY, 42, starSelector], [ANY, OPEN_BRACKET, 7], [ANY, COLON, pseudoElement, ":"], [ANY, COLON, pseudoGlobal, "global"], [ANY, COLON, 3, "has", "host-context", "not", "where", "is", "matches", "any"], [ANY, COLON, 4], [ANY, IDENT, 1], [ANY, DOT, 1], [ANY, HASH, 1], [ANY, 64, atRuleSelector, "keyframe"], [ANY, 64, atRuleBlock, "media", "supports"], [ANY, 64, atRuleInert], [ANY, 123, 13], [47, 42, 16], [ANY, 59, EXIT], [ANY, 125, EXIT], [ANY, CLOSE_PARENTHESIS, EXIT], ...STRINGS_COMMENTS], [[ANY, NOT_IDENT, EXIT_INSERT_SCOPE]], [[ANY, NOT_IDENT, EXIT_INSERT_SCOPE]], [[ANY, 40, rule], [ANY, NOT_IDENT, EXIT_INSERT_SCOPE]], [[ANY, 40, 8], [ANY, NOT_IDENT, EXIT_INSERT_SCOPE]], [[ANY, 40, rule], [ANY, NOT_IDENT, EXIT]], [[ANY, NOT_IDENT, EXIT]], [[ANY, 93, EXIT_INSERT_SCOPE], [ANY, 39, 14], [ANY, 34, 15]], [[ANY, CLOSE_PARENTHESIS, EXIT], ...STRINGS_COMMENTS], [[ANY, 125, EXIT], ...STRINGS_COMMENTS], [[ANY, 125, EXIT], [WHITESPACE, IDENT, 1], [ANY, COLON, pseudoGlobal, "global"], [ANY, 123, 13], ...STRINGS_COMMENTS], [[ANY, 123, rule], [ANY, 59, EXIT], ...STRINGS_COMMENTS], [[ANY, 59, EXIT], [ANY, 123, 9], ...STRINGS_COMMENTS], [[ANY, 125, EXIT], [ANY, 123, 13], [ANY, 40, 8], ...STRINGS_COMMENTS], [[ANY, 39, EXIT]], [[ANY, 34, EXIT]], [[42, 47, EXIT]]];
-const useStylesScopedQrl = (styles2) => {
-  _useStyles(styles2, getScopedStyles, true);
+const useStylesQrl = (styles2) => {
+  _useStyles(styles2, (str) => str, false);
 };
 const _useStyles = (styleQrl, transform, scoped) => {
   const { get, set, ctx, i } = useSequentialScope();
@@ -3209,109 +3091,35 @@ const _useStyles = (styleQrl, transform, scoped) => {
   };
   return isPromise(value) ? ctx.$waitOn$.push(value.then(appendStyle)) : appendStyle(value), styleId;
 };
-const QwikLogo = () => /* @__PURE__ */ jsx("svg", {
-  width: "100",
-  height: "35",
-  viewBox: "0 0 167 53",
-  fill: "none",
-  xmlns: "http://www.w3.org/2000/svg",
-  children: [
-    /* @__PURE__ */ jsx("path", {
-      d: "M81.9545 46.5859H75.5513V35.4045C73.4363 36.8579 71.0496 37.5749 68.4884 37.5749C65.0151 37.5749 62.4344 36.6253 60.8239 34.6487C59.2134 32.6915 58.3984 29.2034 58.3984 24.2231C58.3984 19.1266 59.3492 15.5997 61.2702 13.5456C63.23 11.4721 66.3734 10.4644 70.7004 10.4644C74.7946 10.4644 78.5201 11.0264 81.9545 12.131V46.5859ZM75.5513 16.278C74.096 15.8323 72.4661 15.6191 70.7004 15.6191C68.5272 15.6191 66.9749 16.1811 66.1017 17.3244C65.2479 18.4871 64.7823 20.6962 64.7823 23.9712C64.7823 27.0524 65.1897 29.1065 66.0435 30.2304C66.8973 31.335 68.3719 31.897 70.5452 31.897C73.3781 31.897 75.5513 30.7343 75.5513 29.2809V16.278Z",
-      fill: "black"
-    }),
-    /* @__PURE__ */ jsx("path", {
-      d: "M91.133 11.1426C93.4033 17.4406 95.3242 23.7386 96.993 30.0948C99.205 23.5836 101.087 17.2856 102.542 11.1426H108.15C110.265 17.4406 112.031 23.7386 113.447 30.0948C115.97 23.196 117.949 16.8787 119.404 11.1426H125.71C123.033 20.173 120.064 28.777 116.785 36.8966H109.256C108.402 32.3039 107.044 26.7617 105.22 20.1536C104.056 25.2889 102.445 30.8893 100.33 36.8966H92.8018C90.2793 27.5174 87.5434 18.9522 84.6328 11.1426H91.133Z",
-      fill: "black"
-    }),
-    /* @__PURE__ */ jsx("path", {
-      d: "M132.832 7.55758C129.999 7.55758 129.203 6.85996 129.203 3.97257C129.203 1.39523 130.018 0.794495 132.832 0.794495C135.665 0.794495 136.46 1.39523 136.46 3.97257C136.46 6.85996 135.665 7.55758 132.832 7.55758ZM129.649 11.1426H136.053V36.8966H129.649V11.1426Z",
-      fill: "black"
-    }),
-    /* @__PURE__ */ jsx("path", {
-      d: "M166.303 11.1426C161.763 17.5956 158.581 21.5295 156.815 22.9441C158.27 23.8937 162.17 28.8933 167.002 36.916H159.628C153.613 27.7887 150.742 23.8549 149.325 23.2542V36.916H142.922V0H149.325V23.2348C150.78 22.169 153.963 18.1382 158.872 11.1426H166.303Z",
-      fill: "black"
-    }),
-    /* @__PURE__ */ jsx("path", {
-      d: "M40.973 52.5351L32.0861 43.6985L31.9503 43.7179V43.621L13.0511 24.9595L17.708 20.4637L14.9721 4.76715L1.99103 20.8513C-0.220992 23.0798 -0.628467 26.7036 0.962635 29.3778L9.07337 42.8265C10.3152 44.9 12.566 46.1402 14.9915 46.1208L19.0081 46.082L40.973 52.5351Z",
-      fill: "#18B6F6"
-    }),
-    /* @__PURE__ */ jsx("path", {
-      d: "M45.8232 20.5411L44.038 17.2468L43.1066 15.5609L42.738 14.902L42.6992 14.9408L37.8094 6.47238C36.587 4.34075 34.2974 3.02301 31.8137 3.04239L27.5255 3.15865L14.7384 3.19741C12.313 3.21679 10.101 4.49577 8.87853 6.56927L1.09766 21.9945L15.0101 4.72831L33.2496 24.7656L30.0091 28.0406L31.9495 43.7178L31.9689 43.679V43.7178H31.9301L31.9689 43.7565L33.4824 45.2293L40.8364 52.4187C41.1469 52.7094 41.6514 52.3606 41.4379 51.9924L36.8975 43.0589L44.8142 28.4282L45.0664 28.1375C45.1634 28.0212 45.2604 27.905 45.3381 27.7887C46.8904 25.6764 47.1038 22.8472 45.8232 20.5411Z",
-      fill: "#AC7EF4"
-    }),
-    /* @__PURE__ */ jsx("path", {
-      d: "M33.3076 24.6882L15.0099 4.74774L17.61 20.3668L12.9531 24.882L31.9105 43.6985L30.203 28.0794L33.3076 24.6882Z",
-      fill: "white"
+const styles$4 = "footer {\n  border-top: 1px solid #ddd;\n  margin-top: 8rem;\n  padding: 4rem;\n}\n\nfooter a {\n  color: #949494;\n  font-size: 12px;\n}\n\nfooter ul {\n  list-style: none;\n  margin: 0;\n  padding: 0;\n  text-align: center;\n}\n\nfooter li {\n  display: inline-block;\n  padding: 4px 12px;\n}\n";
+const Footer = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
+  useStylesQrl(inlinedQrl(styles$4, "s_WbM0SKvnb7c"));
+  return /* @__PURE__ */ jsx("footer", {
+    children: /* @__PURE__ */ jsx("ul", {
+      children: [
+        /* @__PURE__ */ jsx("li", {
+          children: /* @__PURE__ */ jsx("a", {
+            class: "footer-home",
+            href: "/",
+            children: "Home"
+          })
+        }),
+        /* @__PURE__ */ jsx("li", {
+          children: /* @__PURE__ */ jsx("a", {
+            href: "#code",
+            children: "Code"
+          })
+        }),
+        /* @__PURE__ */ jsx("li", {
+          children: /* @__PURE__ */ jsx("a", {
+            href: "#blog",
+            children: "Blog"
+          })
+        })
+      ]
     })
-  ]
-});
-const styles$1 = "header {\n  background: var(--qwik-purple);\n}\nheader {\n  display: flex;\n  background: white;\n  border-bottom: 10px solid var(--qwik-dark-purple);\n}\n\nheader .logo a {\n  display: inline-block;\n  padding: 10px 10px 7px 20px;\n}\n\nheader ul {\n  margin: 0;\n  padding: 3px 10px 0 0;\n  list-style: none;\n  flex: 1;\n  text-align: right;\n}\n\nheader li {\n  display: inline-block;\n  margin: 0;\n  padding: 0;\n}\n\nheader li a {\n  display: inline-block;\n  padding: 15px 10px;\n  text-decoration: none;\n}\n\nheader li a:hover {\n  text-decoration: underline;\n}\n";
-const Header = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
-  useStylesScopedQrl(inlinedQrl(styles$1, "s_N39ca0w8E8Y"));
-  return /* @__PURE__ */ jsx("header", {
-    children: [
-      /* @__PURE__ */ jsx("div", {
-        class: "logo",
-        children: /* @__PURE__ */ jsx("a", {
-          href: "https://qwik.builder.io/",
-          target: "_blank",
-          children: /* @__PURE__ */ jsx(QwikLogo, {})
-        })
-      }),
-      /* @__PURE__ */ jsx("ul", {
-        children: [
-          /* @__PURE__ */ jsx("li", {
-            children: /* @__PURE__ */ jsx("a", {
-              href: "https://qwik.builder.io/docs/components/overview/",
-              target: "_blank",
-              children: "Docs"
-            })
-          }),
-          /* @__PURE__ */ jsx("li", {
-            children: /* @__PURE__ */ jsx("a", {
-              href: "https://qwik.builder.io/examples/introduction/hello-world/",
-              target: "_blank",
-              children: "Examples"
-            })
-          }),
-          /* @__PURE__ */ jsx("li", {
-            children: /* @__PURE__ */ jsx("a", {
-              href: "https://qwik.builder.io/tutorial/welcome/overview/",
-              target: "_blank",
-              children: "Tutorials"
-            })
-          })
-        ]
-      })
-    ]
   });
-}, "s_ceU05TscGYE"));
-const layout = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
-  return /* @__PURE__ */ jsx(Fragment, {
-    children: [
-      /* @__PURE__ */ jsx("main", {
-        children: [
-          /* @__PURE__ */ jsx(Header, {}),
-          /* @__PURE__ */ jsx("section", {
-            children: /* @__PURE__ */ jsx(Slot, {})
-          })
-        ]
-      }),
-      /* @__PURE__ */ jsx("footer", {
-        children: /* @__PURE__ */ jsx("a", {
-          href: "https://www.builder.io/",
-          target: "_blank",
-          children: "Made with \u2661 by Builder.io"
-        })
-      })
-    ]
-  });
-}, "s_VkLNXphUh5s"));
-const Layout_ = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
-  __proto__: null,
-  default: layout
-}, Symbol.toStringTag, { value: "Module" }));
+}, "s_3lb9EjxI5sA"));
 const isServer = true;
 const isBrowser = false;
 const ContentContext = /* @__PURE__ */ createContext$1("qc-c");
@@ -3444,10 +3252,10 @@ const useNavigate = () => useContext(RouteNavigateContext);
 const useQwikCityEnv = () => noSerialize(useEnvData("qwikcity"));
 const toPath = (url) => url.pathname + url.search + url.hash;
 const toUrl = (url, baseUrl) => new URL(url, baseUrl.href);
-const isSameOrigin = (a2, b) => a2.origin === b.origin;
-const isSamePath = (a2, b) => a2.pathname + a2.search === b.pathname + b.search;
-const isSamePathname = (a2, b) => a2.pathname === b.pathname;
-const isSameOriginDifferentPathname = (a2, b) => isSameOrigin(a2, b) && !isSamePath(a2, b);
+const isSameOrigin = (a, b) => a.origin === b.origin;
+const isSamePath = (a, b) => a.pathname + a.search === b.pathname + b.search;
+const isSamePathname = (a, b) => a.pathname === b.pathname;
+const isSameOriginDifferentPathname = (a, b) => isSameOrigin(a, b) && !isSamePath(a, b);
 const getClientEndpointPath = (pathname) => pathname + (pathname.endsWith("/") ? "" : "/") + "q-data.json";
 const getClientNavPath = (props, baseUrl) => {
   const href = props.href;
@@ -3525,22 +3333,6 @@ const dispatchPrefetchEvent = (prefetchData) => dispatchEvent(new CustomEvent("q
   detail: prefetchData
 }));
 const CLIENT_HISTORY_INITIALIZED = /* @__PURE__ */ Symbol();
-const useEndpoint = () => {
-  const loc = useLocation();
-  const env = useQwikCityEnv();
-  return useResourceQrl(inlinedQrl(async ({ track }) => {
-    const [env2, loc2] = useLexicalScope();
-    track(loc2, "href");
-    {
-      if (!env2)
-        throw new Error("Endpoint response body is missing");
-      return env2.response.body;
-    }
-  }, "useEndpoint_useResource_3SNE8VxnEag", [
-    env,
-    loc
-  ]));
-};
 const loadClientData = async (href) => {
   const { cacheModules: cacheModules2 } = await Promise.resolve().then(() => _qwikCityPlan);
   const pagePathname = new URL(href).pathname;
@@ -3656,7 +3448,7 @@ const QwikCity = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
   ]));
   return /* @__PURE__ */ jsx(Slot, {});
 }, "QwikCity_component_z1nvHyEppoI"));
-const Link = /* @__PURE__ */ componentQrl(inlinedQrl((props) => {
+/* @__PURE__ */ componentQrl(inlinedQrl((props) => {
   const nav = useNavigate();
   const loc = useLocation();
   const originalHref = props.href;
@@ -3699,328 +3491,208 @@ const swRegister = '((s,a,r,i)=>{r=(e,t)=>{t=document.querySelector("[q\\\\:base
 const ServiceWorkerRegister = () => jsx("script", {
   dangerouslySetInnerHTML: swRegister
 });
-const Blog$1 = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
-  const resource = useResourceQrl(inlinedQrl(async () => {
-    const value = await onGet$1();
-    return value;
-  }, "s_l00thAIBnTg"));
-  return /* @__PURE__ */ jsx("div", {
-    children: /* @__PURE__ */ jsx(Resource, {
-      value: resource,
-      onResolved: (blogs) => /* @__PURE__ */ jsx(Fragment, {
-        children: blogs.data.user.publication.posts.map((post) => /* @__PURE__ */ jsx("div", {
+const styles$3 = "header .header-inner {\n  display: grid;\n  grid-template-columns: 1fr auto auto;\n  padding: 1rem;\n  max-width: 800px;\n  margin: 0 auto;\n}\n\n.full-screen header .header-inner {\n  max-width: 100%;\n}\n\nheader a {\n  color: black;\n  text-decoration: none;\n  padding: 4px 8px;\n  margin-right: 5px;\n  border-radius: 4px;\n}\n\n@media (prefers-color-scheme: dark) {\n  header a {\n    color: white;\n  }\n}\n\nheader a:hover {\n  background-color: #ffffff50;\n}\n\nheader .active {\n  background-color: #ffffff30;\n}\n\n.theme-toggle {\n  background: transparent;\n  width: 30px;\n  border: none;\n  cursor: pointer;\n}\n\n.theme-light .theme-toggle::before {\n  content: '\u263D';\n}\n\n.theme-dark .theme-toggle::before {\n  content: '\u2600';\n}\n";
+const Header = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
+  useStylesQrl(inlinedQrl(styles$3, "s_0Q2jrWwUacs"));
+  const pathname = useLocation().pathname;
+  return /* @__PURE__ */ jsx("header", {
+    children: /* @__PURE__ */ jsx("div", {
+      class: "header-inner",
+      children: [
+        /* @__PURE__ */ jsx("section", {
+          class: "logo",
+          children: /* @__PURE__ */ jsx("a", {
+            href: "/",
+            children: "Sarah Schwartz"
+          })
+        }),
+        /* @__PURE__ */ jsx("nav", {
           children: [
-            /* @__PURE__ */ jsx("h2", {
-              children: post.title
+            /* @__PURE__ */ jsx("a", {
+              href: "#code",
+              class: {
+                active: pathname.startsWith("/code")
+              },
+              children: "Code"
             }),
-            /* @__PURE__ */ jsx("p", {
-              children: post.brief
+            /* @__PURE__ */ jsx("a", {
+              href: "#blog",
+              class: {
+                active: pathname.startsWith("/blog")
+              },
+              children: "Blog"
             })
           ]
-        }))
-      })
+        })
+      ]
     })
   });
-}, "s_XHbW4faQKTs"));
-const onGet$1 = async () => {
-  let responseJSON;
-  try {
-    const response = await fetch("https://api.hashnode.com/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        query: `
-        query myPosts {
-          user(username: "sarahschwartz") {
-            photo
-            blogHandle
-            publication {
-              posts(page: 0) {
-                title
-                brief
-                coverImage
-                slug
-                totalReactions
-                dateAdded
-              }
-            }
-          }
-        }
-          `
-      })
-    });
-    if (response.status !== 200)
-      console.log("Oops! Something went wrong.");
-    else {
-      responseJSON = await response.json();
-      console.log("RESP", responseJSON);
-    }
-  } catch (error) {
-    console.log("ERROR", error);
-  }
-  return responseJSON;
-};
-const Test = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
-  return /* @__PURE__ */ jsx("div", {
-    children: "Hi  Test"
-  });
-}, "s_UQ0RSgqY0SU"));
-const index$2 = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
+}, "s_ceU05TscGYE"));
+const layout = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
   return /* @__PURE__ */ jsx("div", {
     children: [
-      /* @__PURE__ */ jsx(Blog$1, {}),
-      /* @__PURE__ */ jsx(Test, {}),
-      /* @__PURE__ */ jsx("h1", {
-        children: [
-          "Welcome to Qwik ",
-          /* @__PURE__ */ jsx("span", {
-            class: "lightning",
-            children: "\u26A1\uFE0F"
-          })
-        ]
+      /* @__PURE__ */ jsx(Header, {}),
+      /* @__PURE__ */ jsx("main", {
+        children: /* @__PURE__ */ jsx(Slot, {})
       }),
-      /* @__PURE__ */ jsx("ul", {
-        children: [
-          /* @__PURE__ */ jsx("li", {
-            children: [
-              "Check out the ",
-              /* @__PURE__ */ jsx("code", {
-                children: "src/routes"
-              }),
-              " directory to get started."
-            ]
-          }),
-          /* @__PURE__ */ jsx("li", {
-            children: [
-              "Add integrations with ",
-              /* @__PURE__ */ jsx("code", {
-                children: "npm run qwik add"
-              }),
-              "."
-            ]
-          }),
-          /* @__PURE__ */ jsx("li", {
-            children: [
-              "More info about development in ",
-              /* @__PURE__ */ jsx("code", {
-                children: "README.md"
-              })
-            ]
-          })
-        ]
-      }),
+      /* @__PURE__ */ jsx(Footer, {})
+    ]
+  });
+}, "s_VkLNXphUh5s"));
+const Layout_ = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: layout
+}, Symbol.toStringTag, { value: "Module" }));
+const styles$2 = ".blog-tag{\n    background-color: #A6D99E;\n}\n\n.blog-card-image{\n    width: 100%;\n    margin-top: 1rem;\n}\n\n@media (prefers-color-scheme: dark) {\n	.blog-tag{\n        background-color: #0b4429;\n    }\n  }";
+const Blog = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
+  useStylesQrl(inlinedQrl(styles$2, "s_aQmKj4sFRTk"));
+  const state = useStore({
+    isDragging: false,
+    startPos: 0,
+    currentTranslate: 0,
+    prevTranslate: 0,
+    animationID: 0,
+    currentIndex: 0
+  });
+  const resource = useResourceQrl(inlinedQrl(async () => {
+    const value = await onGet();
+    return value;
+  }, "s_BGvYONIOnD8"));
+  return /* @__PURE__ */ jsx("div", {
+    id: "blog",
+    children: [
       /* @__PURE__ */ jsx("h2", {
-        children: "Commands"
+        children: "Blog"
       }),
-      /* @__PURE__ */ jsx("table", {
-        class: "commands",
-        children: [
-          /* @__PURE__ */ jsx("tr", {
-            children: [
-              /* @__PURE__ */ jsx("td", {
-                children: /* @__PURE__ */ jsx("code", {
-                  children: "npm run dev"
-                })
-              }),
-              /* @__PURE__ */ jsx("td", {
-                children: "Start the dev server and watch for changes."
+      /* @__PURE__ */ jsx("div", {
+        class: state.isDragging ? "slider-container grabbing" : "slider-container",
+        style: `transform: translateX(${state.currentTranslate * 1.0045}px);`,
+        children: /* @__PURE__ */ jsx(Resource, {
+          value: resource,
+          onResolved: (blogs) => /* @__PURE__ */ jsx(Fragment, {
+            children: blogs.data.user.publication.posts.map((post, index2) => /* @__PURE__ */ jsx("div", {
+              onMouseMove$: inlinedQrl((event) => {
+                const [state2] = useLexicalScope();
+                if (state2.isDragging) {
+                  const currentPosition = event.pageX;
+                  state2.currentTranslate = state2.prevTranslate + currentPosition - state2.startPos;
+                }
+              }, "s_JYoAI0TRKXY", [
+                state
+              ]),
+              onMouseUp$: inlinedQrl(() => {
+                const [blogs2, state2] = useLexicalScope();
+                state2.isDragging = false;
+                cancelAnimationFrame(state2.animationID);
+                const movedBy = state2.currentTranslate - state2.prevTranslate;
+                if (movedBy < -100 && state2.currentIndex < blogs2.data.user.publication.posts.length - 1)
+                  state2.currentIndex++;
+                if (movedBy > 100 && state2.currentIndex > 0)
+                  state2.currentIndex--;
+                state2.currentTranslate = state2.currentIndex * -window.innerWidth;
+                state2.prevTranslate = state2.currentTranslate;
+              }, "s_rN2LCSZNBtk", [
+                blogs,
+                state
+              ]),
+              onMouseLeave$: inlinedQrl(() => {
+                const [blogs2, state2] = useLexicalScope();
+                state2.isDragging = false;
+                cancelAnimationFrame(state2.animationID);
+                const movedBy = state2.currentTranslate - state2.prevTranslate;
+                if (movedBy < -100 && state2.currentIndex < blogs2.data.user.publication.posts.length - 1)
+                  state2.currentIndex++;
+                if (movedBy > 100 && state2.currentIndex > 0)
+                  state2.currentIndex--;
+                state2.currentTranslate = state2.currentIndex * -window.innerWidth;
+                state2.prevTranslate = state2.currentTranslate;
+              }, "s_ewnuO9PsR94", [
+                blogs,
+                state
+              ]),
+              onMouseDown$: inlinedQrl((event) => {
+                const [index3, state2] = useLexicalScope();
+                function animation() {
+                  if (state2.isDragging)
+                    requestAnimationFrame(animation);
+                }
+                state2.currentIndex = index3;
+                state2.startPos = event.pageX;
+                state2.isDragging = true;
+                state2.animationID = requestAnimationFrame(animation);
+              }, "s_j6zpS0U8YDs", [
+                index2,
+                state
+              ]),
+              onTouchMove$: inlinedQrl((event) => {
+                const [state2] = useLexicalScope();
+                if (state2.isDragging) {
+                  const currentPosition = event.touches[0].clientX;
+                  state2.currentTranslate = state2.prevTranslate + currentPosition - state2.startPos;
+                }
+              }, "s_dZk00WzPwoI", [
+                state
+              ]),
+              onTouchEnd$: inlinedQrl(() => {
+                const [blogs2, state2] = useLexicalScope();
+                state2.isDragging = false;
+                cancelAnimationFrame(state2.animationID);
+                const movedBy = state2.currentTranslate - state2.prevTranslate;
+                if (movedBy < -100 && state2.currentIndex < blogs2.data.user.publication.posts.length - 1)
+                  state2.currentIndex++;
+                if (movedBy > 100 && state2.currentIndex > 0)
+                  state2.currentIndex--;
+                state2.currentTranslate = state2.currentIndex * -window.innerWidth;
+                state2.prevTranslate = state2.currentTranslate;
+              }, "s_jQMbPE0xj0k", [
+                blogs,
+                state
+              ]),
+              onTouchStart$: inlinedQrl((event) => {
+                const [index3, state2] = useLexicalScope();
+                function animation() {
+                  if (state2.isDragging)
+                    requestAnimationFrame(animation);
+                }
+                state2.currentIndex = index3;
+                state2.startPos = event.touches[0].clientX;
+                state2.isDragging = true;
+                state2.animationID = requestAnimationFrame(animation);
+              }, "s_8mBQQVmYojM", [
+                index2,
+                state
+              ]),
+              class: "slide",
+              children: /* @__PURE__ */ jsx("div", {
+                class: "inner-slide",
+                children: [
+                  /* @__PURE__ */ jsx("a", {
+                    href: `https://schwartz.hashnode.dev/${post.slug}`,
+                    target: "_blank",
+                    children: [
+                      /* @__PURE__ */ jsx("h3", {
+                        children: post.title
+                      }),
+                      /* @__PURE__ */ jsx("img", {
+                        class: "blog-card-image",
+                        src: post.coverImage,
+                        alt: post.title
+                      })
+                    ]
+                  }),
+                  /* @__PURE__ */ jsx("p", {
+                    class: "code-description",
+                    children: post.brief
+                  })
+                ]
               })
-            ]
-          }),
-          /* @__PURE__ */ jsx("tr", {
-            children: [
-              /* @__PURE__ */ jsx("td", {
-                children: /* @__PURE__ */ jsx("code", {
-                  children: "npm run preview"
-                })
-              }),
-              /* @__PURE__ */ jsx("td", {
-                children: "Production build and start preview server."
-              })
-            ]
-          }),
-          /* @__PURE__ */ jsx("tr", {
-            children: [
-              /* @__PURE__ */ jsx("td", {
-                children: /* @__PURE__ */ jsx("code", {
-                  children: "npm run build"
-                })
-              }),
-              /* @__PURE__ */ jsx("td", {
-                children: "Production build."
-              })
-            ]
-          }),
-          /* @__PURE__ */ jsx("tr", {
-            children: [
-              /* @__PURE__ */ jsx("td", {
-                children: /* @__PURE__ */ jsx("code", {
-                  children: "npm run qwik add"
-                })
-              }),
-              /* @__PURE__ */ jsx("td", {
-                children: "Select an integration to add."
-              })
-            ]
+            }))
           })
-        ]
-      }),
-      /* @__PURE__ */ jsx("h2", {
-        children: "Add Integrations"
-      }),
-      /* @__PURE__ */ jsx("table", {
-        class: "commands",
-        children: [
-          /* @__PURE__ */ jsx("tr", {
-            children: [
-              /* @__PURE__ */ jsx("td", {
-                children: /* @__PURE__ */ jsx("code", {
-                  children: "npm run qwik add cloudflare-pages"
-                })
-              }),
-              /* @__PURE__ */ jsx("td", {
-                children: /* @__PURE__ */ jsx("a", {
-                  href: "https://developers.cloudflare.com/pages",
-                  target: "_blank",
-                  children: "Cloudflare Pages Server"
-                })
-              })
-            ]
-          }),
-          /* @__PURE__ */ jsx("tr", {
-            children: [
-              /* @__PURE__ */ jsx("td", {
-                children: /* @__PURE__ */ jsx("code", {
-                  children: "npm run qwik add express"
-                })
-              }),
-              /* @__PURE__ */ jsx("td", {
-                children: /* @__PURE__ */ jsx("a", {
-                  href: "https://expressjs.com/",
-                  target: "_blank",
-                  children: "Nodejs Express Server"
-                })
-              })
-            ]
-          }),
-          /* @__PURE__ */ jsx("tr", {
-            children: [
-              /* @__PURE__ */ jsx("td", {
-                children: /* @__PURE__ */ jsx("code", {
-                  children: "npm run qwik add netlify-edge"
-                })
-              }),
-              /* @__PURE__ */ jsx("td", {
-                children: /* @__PURE__ */ jsx("a", {
-                  href: "https://docs.netlify.com/",
-                  target: "_blank",
-                  children: "Netlify Edge Functions"
-                })
-              })
-            ]
-          }),
-          /* @__PURE__ */ jsx("tr", {
-            children: [
-              /* @__PURE__ */ jsx("td", {
-                children: /* @__PURE__ */ jsx("code", {
-                  children: "npm run qwik add static-node"
-                })
-              }),
-              /* @__PURE__ */ jsx("td", {
-                children: /* @__PURE__ */ jsx("a", {
-                  href: "https://qwik.builder.io/qwikcity/static-site-generation/overview/",
-                  target: "_blank",
-                  children: "Static Site Generation (SSG)"
-                })
-              })
-            ]
-          })
-        ]
-      }),
-      /* @__PURE__ */ jsx("h2", {
-        children: "Community"
-      }),
-      /* @__PURE__ */ jsx("ul", {
-        children: [
-          /* @__PURE__ */ jsx("li", {
-            children: [
-              /* @__PURE__ */ jsx("span", {
-                children: "Questions or just want to say hi? "
-              }),
-              /* @__PURE__ */ jsx("a", {
-                href: "https://qwik.builder.io/chat",
-                target: "_blank",
-                children: "Chat on discord!"
-              })
-            ]
-          }),
-          /* @__PURE__ */ jsx("li", {
-            children: [
-              /* @__PURE__ */ jsx("span", {
-                children: "Follow "
-              }),
-              /* @__PURE__ */ jsx("a", {
-                href: "https://twitter.com/QwikDev",
-                target: "_blank",
-                children: "@QwikDev"
-              }),
-              /* @__PURE__ */ jsx("span", {
-                children: " on Twitter"
-              })
-            ]
-          }),
-          /* @__PURE__ */ jsx("li", {
-            children: [
-              /* @__PURE__ */ jsx("span", {
-                children: "Open issues and contribute on "
-              }),
-              /* @__PURE__ */ jsx("a", {
-                href: "https://github.com/BuilderIO/qwik",
-                target: "_blank",
-                children: "Github"
-              })
-            ]
-          })
-        ]
-      }),
-      /* @__PURE__ */ jsx(Link, {
-        class: "mindblow",
-        href: "/flower",
-        children: "Blow my mind \u{1F92F}"
+        })
       })
     ]
   });
-}, "s_xYL1qOwPyDI"));
-const head$1 = {
-  title: "Welcome to Qwik"
-};
-const Index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
-  __proto__: null,
-  default: index$2,
-  head: head$1
-}, Symbol.toStringTag, { value: "Module" }));
-const index$1 = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
-  const resource = useEndpoint();
-  return /* @__PURE__ */ jsx("div", {
-    children: /* @__PURE__ */ jsx(Resource, {
-      value: resource,
-      onResolved: (blogs) => /* @__PURE__ */ jsx(Fragment, {
-        children: blogs.data.user.publication.posts.map((post) => /* @__PURE__ */ jsx("div", {
-          children: [
-            /* @__PURE__ */ jsx("h2", {
-              children: post.title
-            }),
-            /* @__PURE__ */ jsx("p", {
-              children: post.brief
-            })
-          ]
-        }))
-      })
-    })
-  });
-}, "s_0RuWJF374SY"));
+}, "s_UMfepLNAwco"));
 const onGet = async () => {
   let responseJSON;
   try {
@@ -4052,86 +3724,291 @@ const onGet = async () => {
     });
     if (response.status !== 200)
       console.log("Oops! Something went wrong.");
-    else {
+    else
       responseJSON = await response.json();
-      console.log("RESP", responseJSON);
-    }
   } catch (error) {
     console.log("ERROR", error);
   }
   return responseJSON;
 };
-const Blog = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
-  __proto__: null,
-  default: index$1,
-  onGet
-}, Symbol.toStringTag, { value: "Module" }));
-const styles = ".host {\n  display: grid;\n\n  align-items: center;\n  justify-content: center;\n  justify-items: center;\n  --rotation: 135deg;\n  --rotation: 225deg;\n  --size-step: 10px;\n  --odd-color-step: 5;\n  --even-color-step: 5;\n  --center: 12;\n\n  width: 100%;\n  height: 500px;\n\n  contain: strict;\n}\n\ninput {\n  width: 100%;\n}\n\n.square {\n  --size: calc(40px + var(--index) * var(--size-step));\n\n  display: block;\n  width: var(--size);\n  height: var(--size);\n  transform: rotateZ(calc(var(--rotation) * var(--state) * (var(--center) - var(--index))));\n  transition-property: transform, border-color;\n  transition-duration: 5s;\n  transition-timing-function: ease-in-out;\n  grid-area: 1 / 1;\n  background: white;\n  border-width: 2px;\n  border-style: solid;\n  border-color: black;\n  box-sizing: border-box;\n  will-change: transform, border-color;\n\n  contain: strict;\n}\n\n.square.odd {\n  --luminance: calc(1 - calc(calc(var(--index) * var(--odd-color-step)) / 256));\n  background: rgb(\n    calc(172 * var(--luminance)),\n    calc(127 * var(--luminance)),\n    calc(244 * var(--luminance))\n  );\n}\n\n.pride .square:nth-child(12n + 1) {\n  background: #e70000;\n}\n.pride .square:nth-child(12n + 3) {\n  background: #ff8c00;\n}\n.pride .square:nth-child(12n + 5) {\n  background: #ffef00;\n}\n.pride .square:nth-child(12n + 7) {\n  background: #00811f;\n}\n.pride .square:nth-child(12n + 9) {\n  background: #0044ff;\n}\n.pride .square:nth-child(12n + 11) {\n  background: #760089;\n}\n";
-const index = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
-  useStylesScopedQrl(inlinedQrl(styles, "s_p4UiTwsJc7c"));
-  const loc = useLocation();
+const styles$1 = ".slider-container {\n	display: inline-flex;\n	overflow: hidden;\n	transform: translateX(0);\n	transition: transform 0.3s ease-out;\n	cursor: grab;\n	margin: 0 0 2rem 0;\n  }\n  \n  .slide {\n	margin: 2rem 0 0 0;\n	padding: 0;\n	max-height: 100vh;\n	width: 100vw;\n	display: flex;\n	flex-direction: column;\n	align-items: center;\n	user-select: none;\n  }\n  \n  .btn {\n	background-color: #2d4b5f;\n	color: #fff;\n	text-decoration: none;\n	padding: 1rem 1.5rem;\n	border-radius: 8px;\n  }\n  \n  .grabbing {\n	cursor: grabbing;\n  }\n  \n  .code-description {\n	padding: 0 1rem;\n  }\n\n  .buttons-container{\n	display: flex;\n	gap: 10px;\n	justify-content: center;\n	margin-bottom: 2rem;\n  }\n\n  .inner-slide{\n	background-color: #f1eeee;\n	border-radius: 16px;\n	padding: 2rem;\n	max-width: 500px;\n  }\n\n  \n\n  .tags-container{\n	list-style: none;\n	display: flex;\n	gap: 10px;\n	flex-wrap: wrap;\n	margin-top: 2rem;\n	font-family: Trebuchet, sans-serif;\n  }\n\n  .tag{\n	border-radius: 16px;\n	padding: 10px 20px;\n  }\n\n  .code-tag{\n	background-color: #9ECED9;\n  }\n\n  ul {\n	padding-inline-start: 0;\n  }\n\n  @media (prefers-color-scheme: dark) {\n	.inner-slide{\n		background-color: #211e1e;\n	  }\n	  .code-tag{\n		background-color: #155462;\n	  }\n  }";
+const Code = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
+  useStylesQrl(inlinedQrl(styles$1, "s_zUgYTE7qoN8"));
   const state = useStore({
-    count: 0,
-    number: 20
+    isDragging: false,
+    startPos: 0,
+    currentTranslate: 0,
+    prevTranslate: 0,
+    animationID: 0,
+    currentIndex: 0
   });
-  useClientEffectQrl(inlinedQrl(({ cleanup }) => {
-    const [state2] = useLexicalScope();
-    const timeout = setTimeout(() => state2.count = 1, 500);
-    cleanup(() => clearTimeout(timeout));
-    const internal = setInterval(() => state2.count++, 7e3);
-    cleanup(() => clearInterval(internal));
-  }, "s_V0Y6u0VD1eY", [
-    state
-  ]));
-  return /* @__PURE__ */ jsx(Fragment, {
+  const code = [
+    {
+      title: "Homebase",
+      description: "Homebase a platform for creators to build deeper relationships with their loyal fans. This project won the 1st place sponsor prize from Unlock Protocol for the ETH Global Online 2022 Hackathon.",
+      tags: [
+        "Lens Protocol",
+        "Unlock Protocol",
+        "The Graph",
+        "GraphQL",
+        "IPFS",
+        "Next.js",
+        "Firebase",
+        "Ethers.js",
+        "Rainbowkit"
+      ],
+      liveUrl: "https://eth-global-hackathon-five.vercel.app/",
+      sourceCode: "https://github.com/sarahschwartz/eth-global-hackathon"
+    },
+    {
+      title: "30DaysofWeb3",
+      description: "30DaysofWeb3 is a project-based curriculum available in both English and Spanish to teach developers how to build full-stack dapps. So far more than 2,000 developers have registered.",
+      tags: [
+        "Next.js",
+        "Markdown",
+        "i18n"
+      ],
+      liveUrl: "https://www.30daysofweb3.xyz/",
+      sourceCode: "https://github.com/womenbuildweb3/30daysofweb3.xyz"
+    },
+    {
+      title: "Web3RSVP",
+      description: "Web3RSVP is a full-stack dapp created for WBW3\u2019s 30DaysofWeb3 curriculum. Users can create events, and attendees can rsvp with a refundable deposit. It includes a Solidity smart contract, a subgraph on The Graph, and a Next.js frontend.",
+      tags: [
+        "Solidity",
+        "Hardhat",
+        "Polygon",
+        "The Graph",
+        "GraphQL",
+        "AssemblyScript",
+        "IPFS",
+        "Next.js",
+        "Ethers.js",
+        "Rainbowkit"
+      ],
+      liveUrl: null,
+      sourceCode: "https://github.com/womenbuildweb3/Web3RSVP-frontend"
+    },
+    {
+      title: "Graphiqly",
+      description: "A subgraph for influential wallets specific to an NFT category created for The Graph Hack 2022.",
+      tags: [
+        "The Graph",
+        "Open Zeppelin Subgraphs",
+        "GraphQL",
+        "AssemblyScript"
+      ],
+      liveUrl: "https://devpost.com/software/graphytime",
+      sourceCode: "https://github.com/sarahschwartz/graph-hack-2022-mva/tree/main"
+    },
+    {
+      title: "Treehouse NFT",
+      description: "An NFT project completed for Web3Con 2022. Each NFT is a video of a treehouse made with Three.js.",
+      tags: [
+        "Three.js",
+        "React Three Fiber"
+      ],
+      liveUrl: null,
+      sourceCode: "https://github.com/sarahschwartz/threejs-treehouses"
+    },
+    {
+      title: "LooksRare Exchange Subgraph",
+      description: "A subgraph for the LooksRare Exchange contract.",
+      tags: [
+        "The Graph",
+        "GraphQL",
+        "AssemblyScript"
+      ],
+      liveUrl: null,
+      sourceCode: "https://github.com/sarahschwartz/looksrare-exchange"
+    },
+    {
+      title: "Generative SVG NFTs",
+      description: "A smart contract that generates pumpkin SVG NFTs inspired by Yayoi Kusama",
+      tags: [
+        "Solidity",
+        "Hardhat",
+        "SVGs",
+        "NFTs"
+      ],
+      liveUrl: null,
+      sourceCode: "https://github.com/sarahschwartz/svg-pumpkin-nft-contract"
+    },
+    {
+      title: "AR Editor",
+      description: "A web-based mobile editor to create augmented reality scenes with Three.js.",
+      tags: [
+        "Three.js",
+        "AR",
+        "WebXR"
+      ],
+      liveUrl: null,
+      sourceCode: "https://github.com/sarahschwartz/ar-editor-webxr-viewer"
+    }
+  ];
+  return /* @__PURE__ */ jsx("div", {
+    id: "code",
     children: [
-      /* @__PURE__ */ jsx("input", {
-        type: "range",
-        value: state.number,
-        max: 50,
-        onInput$: inlinedQrl((ev) => {
-          const [state2] = useLexicalScope();
-          state2.number = ev.target.valueAsNumber;
-        }, "s_dznIGAlrcag", [
-          state
-        ])
+      /* @__PURE__ */ jsx("h2", {
+        children: "Code"
       }),
       /* @__PURE__ */ jsx("div", {
-        style: {
-          "--state": `${state.count * 0.1}`
-        },
-        class: {
-          host: true,
-          pride: loc.query["pride"] === "true"
-        },
-        children: Array.from({
-          length: state.number
-        }, (_, i) => /* @__PURE__ */ jsx("div", {
-          class: {
-            square: true,
-            odd: i % 2 === 0
-          },
-          style: {
-            "--index": `${i + 1}`
-          }
-        }, i)).reverse()
+        class: state.isDragging ? "slider-container grabbing" : "slider-container",
+        style: `transform: translateX(${state.currentTranslate * 1.0045}px);`,
+        children: code.map((slide, index2) => /* @__PURE__ */ jsx("div", {
+          onMouseMove$: inlinedQrl((event) => {
+            const [state2] = useLexicalScope();
+            if (state2.isDragging) {
+              const currentPosition = event.pageX;
+              state2.currentTranslate = state2.prevTranslate + currentPosition - state2.startPos;
+            }
+          }, "s_Ua1bJ6lRcfk", [
+            state
+          ]),
+          onMouseUp$: inlinedQrl(() => {
+            const [code2, state2] = useLexicalScope();
+            state2.isDragging = false;
+            cancelAnimationFrame(state2.animationID);
+            const movedBy = state2.currentTranslate - state2.prevTranslate;
+            if (movedBy < -100 && state2.currentIndex < code2.length - 1)
+              state2.currentIndex++;
+            if (movedBy > 100 && state2.currentIndex > 0)
+              state2.currentIndex--;
+            state2.currentTranslate = state2.currentIndex * -window.innerWidth;
+            state2.prevTranslate = state2.currentTranslate;
+          }, "s_R5TcwUSphvc", [
+            code,
+            state
+          ]),
+          onMouseLeave$: inlinedQrl(() => {
+            const [code2, state2] = useLexicalScope();
+            state2.isDragging = false;
+            cancelAnimationFrame(state2.animationID);
+            const movedBy = state2.currentTranslate - state2.prevTranslate;
+            if (movedBy < -100 && state2.currentIndex < code2.length - 1)
+              state2.currentIndex++;
+            if (movedBy > 100 && state2.currentIndex > 0)
+              state2.currentIndex--;
+            state2.currentTranslate = state2.currentIndex * -window.innerWidth;
+            state2.prevTranslate = state2.currentTranslate;
+          }, "s_ezZV8h3VsoA", [
+            code,
+            state
+          ]),
+          onMouseDown$: inlinedQrl((event) => {
+            const [index3, state2] = useLexicalScope();
+            function animation() {
+              if (state2.isDragging)
+                requestAnimationFrame(animation);
+            }
+            state2.currentIndex = index3;
+            state2.startPos = event.pageX;
+            state2.isDragging = true;
+            state2.animationID = requestAnimationFrame(animation);
+          }, "s_FckIaHqEHdM", [
+            index2,
+            state
+          ]),
+          onTouchMove$: inlinedQrl((event) => {
+            const [state2] = useLexicalScope();
+            if (state2.isDragging) {
+              const currentPosition = event.touches[0].clientX;
+              state2.currentTranslate = state2.prevTranslate + currentPosition - state2.startPos;
+            }
+          }, "s_rs0WpbGDNl0", [
+            state
+          ]),
+          onTouchEnd$: inlinedQrl(() => {
+            const [code2, state2] = useLexicalScope();
+            state2.isDragging = false;
+            cancelAnimationFrame(state2.animationID);
+            const movedBy = state2.currentTranslate - state2.prevTranslate;
+            if (movedBy < -100 && state2.currentIndex < code2.length - 1)
+              state2.currentIndex++;
+            if (movedBy > 100 && state2.currentIndex > 0)
+              state2.currentIndex--;
+            state2.currentTranslate = state2.currentIndex * -window.innerWidth;
+            state2.prevTranslate = state2.currentTranslate;
+          }, "s_1LkXZU3Qtco", [
+            code,
+            state
+          ]),
+          onTouchStart$: inlinedQrl((event) => {
+            const [index3, state2] = useLexicalScope();
+            function animation() {
+              if (state2.isDragging)
+                requestAnimationFrame(animation);
+            }
+            state2.currentIndex = index3;
+            state2.startPos = event.touches[0].clientX;
+            state2.isDragging = true;
+            state2.animationID = requestAnimationFrame(animation);
+          }, "s_Px0Yd9X6E4c", [
+            index2,
+            state
+          ]),
+          class: "slide",
+          children: /* @__PURE__ */ jsx("div", {
+            class: "inner-slide",
+            children: [
+              /* @__PURE__ */ jsx("a", {
+                href: slide.liveUrl ? slide.liveUrl : slide.sourceCode,
+                target: "_blank",
+                children: /* @__PURE__ */ jsx("h3", {
+                  children: slide.title
+                })
+              }),
+              /* @__PURE__ */ jsx("p", {
+                class: "code-description",
+                children: slide.description
+              }),
+              /* @__PURE__ */ jsx("ul", {
+                class: "tags-container",
+                children: slide.tags.map((tag) => /* @__PURE__ */ jsx("li", {
+                  class: "tag code-tag",
+                  children: tag
+                }))
+              })
+            ]
+          })
+        }))
       })
     ]
   });
-}, "s_OW4nu0I1yZ8"));
+}, "s_ATieUd9rr64"));
+const styles = ".about {\n    padding: 0 32px;\n    border-radius: 16px;\n    margin: 0 auto;\n    width: 80vw;\n    max-width: 500px;\n    text-align: center;\n}";
+const index = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
+  useStylesQrl(inlinedQrl(styles, "s_Q1l36CAeHxI"));
+  return /* @__PURE__ */ jsx("div", {
+    children: [
+      /* @__PURE__ */ jsx("h1", {
+        children: "Hi \u{1F44B} I'm Sarah Schwartz"
+      }),
+      /* @__PURE__ */ jsx("div", {
+        children: /* @__PURE__ */ jsx("p", {
+          class: "about",
+          children: [
+            "I\u2019m a full-stack web developer who\u2019s passionate about web3. ",
+            "In my free time I contribute as a core team member to WomenBuildWeb3. During the day, I support developers building with Builder.io. When I\u2019m not at my computer, I like riding my bike, playing games, and 3d printing. "
+          ]
+        })
+      }),
+      /* @__PURE__ */ jsx(Code, {}),
+      /* @__PURE__ */ jsx(Blog, {})
+    ]
+  });
+}, "s_xYL1qOwPyDI"));
 const head = {
-  title: "Qwik Flower"
+  title: "Sarah Schwartz"
 };
-const Flower = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const Index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   default: index,
   head
 }, Symbol.toStringTag, { value: "Module" }));
 const Layout = () => Layout_;
 const routes = [
-  [/^\/$/, [Layout, () => Index], void 0, "/", ["q-2ff26a44.js", "q-2c44ddea.js"]],
-  [/^\/blog\/?$/, [Layout, () => Blog], void 0, "/blog", ["q-2ff26a44.js", "q-77d54e95.js"]],
-  [/^\/flower\/?$/, [Layout, () => Flower], void 0, "/flower", ["q-2ff26a44.js", "q-9b2c6db2.js"]]
+  [/^\/$/, [Layout, () => Index], void 0, "/", ["q-14ed54c8.js", "q-0573ea2c.js"]]
 ];
 const menus = [];
 const trailingSlash = false;
@@ -4785,7 +4662,7 @@ if (typeof global == "undefined") {
   g.global = g;
 }
 var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
-  get: (a2, b) => (typeof require !== "undefined" ? require : a2)[b]
+  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
 }) : x)(function(x) {
   if (typeof require !== "undefined")
     return require.apply(this, arguments);
@@ -5416,52 +5293,25 @@ function collectRenderSymbols(renderSymbols, elements) {
     }
   }
 }
-const manifest = { "symbols": { "s_hA9UPaY8sNQ": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "Link_component_a_onClick", "canonicalFilename": "s_ha9upay8snq", "hash": "hA9UPaY8sNQ", "ctxKind": "event", "ctxName": "onClick$", "captures": true, "parent": "s_mYsiJcA4IBc" }, "s_skxgNVWVOT8": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "Link_component_a_onMouseOver", "canonicalFilename": "s_skxgnvwvot8", "hash": "skxgNVWVOT8", "ctxKind": "event", "ctxName": "onMouseOver$", "captures": false, "parent": "s_mYsiJcA4IBc" }, "s_dznIGAlrcag": { "origin": "routes/flower/index.tsx", "displayName": "flower_component__Fragment_input_onInput", "canonicalFilename": "s_dznigalrcag", "hash": "dznIGAlrcag", "ctxKind": "event", "ctxName": "onInput$", "captures": true, "parent": "s_OW4nu0I1yZ8" }, "s_uVE5iM9H73c": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "Link_component_a_onQVisible", "canonicalFilename": "s_uve5im9h73c", "hash": "uVE5iM9H73c", "ctxKind": "event", "ctxName": "onQVisible$", "captures": false, "parent": "s_mYsiJcA4IBc" }, "s_AaAlzKH0KlQ": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "QwikCity_component_useWatch", "canonicalFilename": "s_aaalzkh0klq", "hash": "AaAlzKH0KlQ", "ctxKind": "function", "ctxName": "useWatch$", "captures": true, "parent": "s_z1nvHyEppoI" }, "s_V0Y6u0VD1eY": { "origin": "routes/flower/index.tsx", "displayName": "flower_component_useClientEffect", "canonicalFilename": "s_v0y6u0vd1ey", "hash": "V0Y6u0VD1eY", "ctxKind": "function", "ctxName": "useClientEffect$", "captures": true, "parent": "s_OW4nu0I1yZ8" }, "s_0RuWJF374SY": { "origin": "routes/blog/index.tsx", "displayName": "blog_component", "canonicalFilename": "s_0ruwjf374sy", "hash": "0RuWJF374SY", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_3sccYCDd1Z0": { "origin": "root.tsx", "displayName": "root_component", "canonicalFilename": "s_3sccycdd1z0", "hash": "3sccYCDd1Z0", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_OW4nu0I1yZ8": { "origin": "routes/flower/index.tsx", "displayName": "flower_component", "canonicalFilename": "s_ow4nu0i1yz8", "hash": "OW4nu0I1yZ8", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_UQ0RSgqY0SU": { "origin": "components/test/test.tsx", "displayName": "test_component", "canonicalFilename": "s_uq0rsgqy0su", "hash": "UQ0RSgqY0SU", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_VkLNXphUh5s": { "origin": "routes/layout.tsx", "displayName": "layout_component", "canonicalFilename": "s_vklnxphuh5s", "hash": "VkLNXphUh5s", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_XHbW4faQKTs": { "origin": "components/blog-comp/blog-comp.tsx", "displayName": "blog_comp_component", "canonicalFilename": "s_xhbw4faqkts", "hash": "XHbW4faQKTs", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_ceU05TscGYE": { "origin": "components/header/header.tsx", "displayName": "header_component", "canonicalFilename": "s_ceu05tscgye", "hash": "ceU05TscGYE", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_mYsiJcA4IBc": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "Link_component", "canonicalFilename": "s_mysijca4ibc", "hash": "mYsiJcA4IBc", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_nd8yk3KO22c": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "RouterOutlet_component", "canonicalFilename": "s_nd8yk3ko22c", "hash": "nd8yk3KO22c", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_xYL1qOwPyDI": { "origin": "routes/index.tsx", "displayName": "routes_component", "canonicalFilename": "s_xyl1qowpydi", "hash": "xYL1qOwPyDI", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_z1nvHyEppoI": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "QwikCity_component", "canonicalFilename": "s_z1nvhyeppoi", "hash": "z1nvHyEppoI", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_zrbrqoaqXSY": { "origin": "components/router-head/router-head.tsx", "displayName": "RouterHead_component", "canonicalFilename": "s_zrbrqoaqxsy", "hash": "zrbrqoaqXSY", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_N39ca0w8E8Y": { "origin": "components/header/header.tsx", "displayName": "header_component_useStylesScoped", "canonicalFilename": "s_n39ca0w8e8y", "hash": "N39ca0w8E8Y", "ctxKind": "function", "ctxName": "useStylesScoped$", "captures": false, "parent": "s_ceU05TscGYE" }, "s_p4UiTwsJc7c": { "origin": "routes/flower/index.tsx", "displayName": "flower_component_useStylesScoped", "canonicalFilename": "s_p4uitwsjc7c", "hash": "p4UiTwsJc7c", "ctxKind": "function", "ctxName": "useStylesScoped$", "captures": false, "parent": "s_OW4nu0I1yZ8" }, "s_3SNE8VxnEag": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "useEndpoint_useResource", "canonicalFilename": "s_3sne8vxneag", "hash": "3SNE8VxnEag", "ctxKind": "function", "ctxName": "useResource$", "captures": true, "parent": null }, "s_l00thAIBnTg": { "origin": "components/blog-comp/blog-comp.tsx", "displayName": "blog_comp_component_resource_useResource", "canonicalFilename": "s_l00thaibntg", "hash": "l00thAIBnTg", "ctxKind": "function", "ctxName": "useResource$", "captures": false, "parent": "s_XHbW4faQKTs" } }, "mapping": { "s_hA9UPaY8sNQ": "q-23e6659a.js", "s_skxgNVWVOT8": "q-23e6659a.js", "s_dznIGAlrcag": "q-cb986778.js", "s_uVE5iM9H73c": "q-23e6659a.js", "s_AaAlzKH0KlQ": "q-9f663208.js", "s_V0Y6u0VD1eY": "q-cb986778.js", "s_0RuWJF374SY": "q-b37600d1.js", "s_3sccYCDd1Z0": "q-cc056322.js", "s_OW4nu0I1yZ8": "q-cb986778.js", "s_UQ0RSgqY0SU": "q-1c0f41f7.js", "s_VkLNXphUh5s": "q-cea36201.js", "s_XHbW4faQKTs": "q-9f78d612.js", "s_ceU05TscGYE": "q-8174b448.js", "s_mYsiJcA4IBc": "q-23e6659a.js", "s_nd8yk3KO22c": "q-685fe556.js", "s_xYL1qOwPyDI": "q-5be7c077.js", "s_z1nvHyEppoI": "q-9f663208.js", "s_zrbrqoaqXSY": "q-a26fb0a0.js", "s_N39ca0w8E8Y": "q-8174b448.js", "s_p4UiTwsJc7c": "q-cb986778.js", "s_3SNE8VxnEag": "q-bc558637.js", "s_l00thAIBnTg": "q-9f78d612.js" }, "bundles": { "q-143c7194.js": { "size": 2180, "origins": ["node_modules/@builder.io/qwik-city/service-worker.mjs", "src/routes/service-worker.js"] }, "q-1c0f41f7.js": { "size": 107, "imports": ["q-7cdd8e84.js"], "origins": ["src/entry_test.js", "src/s_uq0rsgqy0su.js"], "symbols": ["s_UQ0RSgqY0SU"] }, "q-23e6659a.js": { "size": 886, "imports": ["q-7cdd8e84.js", "q-cc056322.js"], "origins": ["src/entry_Link.js", "src/s_ha9upay8snq.js", "src/s_mysijca4ibc.js", "src/s_skxgnvwvot8.js", "src/s_uve5im9h73c.js"], "symbols": ["s_hA9UPaY8sNQ", "s_mYsiJcA4IBc", "s_skxgNVWVOT8", "s_uVE5iM9H73c"] }, "q-2c44ddea.js": { "size": 204, "imports": ["q-7cdd8e84.js"], "dynamicImports": ["q-5be7c077.js"], "origins": ["src/routes/index.js"] }, "q-2ff26a44.js": { "size": 158, "imports": ["q-7cdd8e84.js"], "dynamicImports": ["q-cea36201.js"], "origins": ["src/routes/layout.js"] }, "q-49db6caf.js": { "size": 58, "imports": ["q-7cdd8e84.js"] }, "q-5be7c077.js": { "size": 3681, "imports": ["q-7cdd8e84.js", "q-cc056322.js"], "dynamicImports": ["q-1c0f41f7.js", "q-9f78d612.js"], "origins": ["src/components/blog-comp/blog-comp.js", "src/components/test/test.js", "src/entry_routes.js", "src/s_xyl1qowpydi.js"], "symbols": ["s_xYL1qOwPyDI"] }, "q-685fe556.js": { "size": 269, "imports": ["q-7cdd8e84.js", "q-cc056322.js"], "origins": ["src/entry_RouterOutlet.js", "src/s_nd8yk3ko22c.js"], "symbols": ["s_nd8yk3KO22c"] }, "q-717e6232.js": { "size": 495, "imports": ["q-7cdd8e84.js"], "dynamicImports": ["q-2c44ddea.js", "q-2ff26a44.js", "q-77d54e95.js", "q-9b2c6db2.js", "q-e89a690b.js"], "origins": ["@qwik-city-plan"] }, "q-77d54e95.js": { "size": 171, "imports": ["q-7cdd8e84.js"], "dynamicImports": ["q-b37600d1.js"], "origins": ["src/routes/blog/index.js"] }, "q-7cdd8e84.js": { "size": 37107, "dynamicImports": ["q-cc056322.js"], "origins": ["\0vite/preload-helper", "node_modules/@builder.io/qwik/core.min.mjs", "src/global.css", "src/root.js"] }, "q-8174b448.js": { "size": 4135, "imports": ["q-7cdd8e84.js"], "origins": ["src/components/header/header.css?used&inline", "src/components/icons/qwik.js", "src/entry_header.js", "src/s_ceu05tscgye.js", "src/s_n39ca0w8e8y.js"], "symbols": ["s_ceU05TscGYE", "s_N39ca0w8E8Y"] }, "q-9b2c6db2.js": { "size": 192, "imports": ["q-7cdd8e84.js"], "dynamicImports": ["q-cb986778.js"], "origins": ["src/routes/flower/index.js"] }, "q-9f663208.js": { "size": 1489, "imports": ["q-7cdd8e84.js", "q-cc056322.js"], "dynamicImports": ["q-717e6232.js"], "origins": ["@builder.io/qwik/build", "src/entry_QwikCity.js", "src/s_aaalzkh0klq.js", "src/s_z1nvhyeppoi.js"], "symbols": ["s_AaAlzKH0KlQ", "s_z1nvHyEppoI"] }, "q-9f78d612.js": { "size": 613, "imports": ["q-5be7c077.js", "q-7cdd8e84.js", "q-cc056322.js"], "origins": ["src/entry_blog_comp.js", "src/s_l00thaibntg.js", "src/s_xhbw4faqkts.js"], "symbols": ["s_l00thAIBnTg", "s_XHbW4faQKTs"] }, "q-a26fb0a0.js": { "size": 909, "imports": ["q-7cdd8e84.js", "q-cc056322.js"], "origins": ["src/entry_RouterHead.js", "src/s_zrbrqoaqxsy.js"], "symbols": ["s_zrbrqoaqXSY"] }, "q-b37600d1.js": { "size": 325, "imports": ["q-7cdd8e84.js", "q-cc056322.js"], "origins": ["src/entry_blog.js", "src/s_0ruwjf374sy.js"], "symbols": ["s_0RuWJF374SY"] }, "q-bc558637.js": { "size": 195, "imports": ["q-7cdd8e84.js", "q-cc056322.js"], "origins": ["src/entry_useEndpoint.js", "src/s_3sne8vxneag.js"], "symbols": ["s_3SNE8VxnEag"] }, "q-cb986778.js": { "size": 2457, "imports": ["q-7cdd8e84.js", "q-cc056322.js"], "origins": ["src/entry_flower.js", "src/routes/flower/flower.css?used&inline", "src/s_dznigalrcag.js", "src/s_ow4nu0i1yz8.js", "src/s_p4uitwsjc7c.js", "src/s_v0y6u0vd1ey.js"], "symbols": ["s_dznIGAlrcag", "s_OW4nu0I1yZ8", "s_p4UiTwsJc7c", "s_V0Y6u0VD1eY"] }, "q-cc056322.js": { "size": 4569, "imports": ["q-7cdd8e84.js"], "dynamicImports": ["q-23e6659a.js", "q-685fe556.js", "q-717e6232.js", "q-9f663208.js", "q-a26fb0a0.js", "q-bc558637.js"], "origins": ["node_modules/@builder.io/qwik-city/index.qwik.mjs", "src/components/router-head/router-head.js", "src/entry_root.js", "src/s_3sccycdd1z0.js"], "symbols": ["s_3sccYCDd1Z0"] }, "q-cea36201.js": { "size": 393, "imports": ["q-7cdd8e84.js"], "dynamicImports": ["q-8174b448.js"], "origins": ["src/components/header/header.js", "src/entry_layout.js", "src/s_vklnxphuh5s.js"], "symbols": ["s_VkLNXphUh5s"] }, "q-e89a690b.js": { "size": 128, "imports": ["q-7cdd8e84.js"], "dynamicImports": ["q-143c7194.js"], "origins": ["@qwik-city-entries"] } }, "injections": [{ "tag": "link", "location": "head", "attributes": { "rel": "stylesheet", "href": "/build/q-0ea8883c.css" } }], "version": "1", "options": { "target": "client", "buildMode": "production", "forceFullBuild": true, "entryStrategy": { "type": "smart" } }, "platform": { "qwik": "0.9.0", "vite": "", "rollup": "2.78.1", "env": "node", "os": "darwin", "node": "16.17.0" } };
-const RouterHead = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
+const manifest = { "symbols": { "s_hA9UPaY8sNQ": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "Link_component_a_onClick", "canonicalFilename": "s_ha9upay8snq", "hash": "hA9UPaY8sNQ", "ctxKind": "event", "ctxName": "onClick$", "captures": true, "parent": "s_mYsiJcA4IBc" }, "s_8mBQQVmYojM": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onTouchStart", "canonicalFilename": "s_8mbqqvmyojm", "hash": "8mBQQVmYojM", "ctxKind": "event", "ctxName": "onTouchStart$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_Px0Yd9X6E4c": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onTouchStart", "canonicalFilename": "s_px0yd9x6e4c", "hash": "Px0Yd9X6E4c", "ctxKind": "event", "ctxName": "onTouchStart$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_1LkXZU3Qtco": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onTouchEnd", "canonicalFilename": "s_1lkxzu3qtco", "hash": "1LkXZU3Qtco", "ctxKind": "event", "ctxName": "onTouchEnd$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_jQMbPE0xj0k": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onTouchEnd", "canonicalFilename": "s_jqmbpe0xj0k", "hash": "jQMbPE0xj0k", "ctxKind": "event", "ctxName": "onTouchEnd$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_dZk00WzPwoI": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onTouchMove", "canonicalFilename": "s_dzk00wzpwoi", "hash": "dZk00WzPwoI", "ctxKind": "event", "ctxName": "onTouchMove$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_rs0WpbGDNl0": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onTouchMove", "canonicalFilename": "s_rs0wpbgdnl0", "hash": "rs0WpbGDNl0", "ctxKind": "event", "ctxName": "onTouchMove$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_FckIaHqEHdM": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onMouseDown", "canonicalFilename": "s_fckiahqehdm", "hash": "FckIaHqEHdM", "ctxKind": "event", "ctxName": "onMouseDown$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_j6zpS0U8YDs": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onMouseDown", "canonicalFilename": "s_j6zps0u8yds", "hash": "j6zpS0U8YDs", "ctxKind": "event", "ctxName": "onMouseDown$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_R5TcwUSphvc": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onMouseUp", "canonicalFilename": "s_r5tcwusphvc", "hash": "R5TcwUSphvc", "ctxKind": "event", "ctxName": "onMouseUp$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_rN2LCSZNBtk": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onMouseUp", "canonicalFilename": "s_rn2lcsznbtk", "hash": "rN2LCSZNBtk", "ctxKind": "event", "ctxName": "onMouseUp$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_JYoAI0TRKXY": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onMouseMove", "canonicalFilename": "s_jyoai0trkxy", "hash": "JYoAI0TRKXY", "ctxKind": "event", "ctxName": "onMouseMove$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_Ua1bJ6lRcfk": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onMouseMove", "canonicalFilename": "s_ua1bj6lrcfk", "hash": "Ua1bJ6lRcfk", "ctxKind": "event", "ctxName": "onMouseMove$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_ewnuO9PsR94": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onMouseLeave", "canonicalFilename": "s_ewnuo9psr94", "hash": "ewnuO9PsR94", "ctxKind": "event", "ctxName": "onMouseLeave$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_ezZV8h3VsoA": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onMouseLeave", "canonicalFilename": "s_ezzv8h3vsoa", "hash": "ezZV8h3VsoA", "ctxKind": "event", "ctxName": "onMouseLeave$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_skxgNVWVOT8": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "Link_component_a_onMouseOver", "canonicalFilename": "s_skxgnvwvot8", "hash": "skxgNVWVOT8", "ctxKind": "event", "ctxName": "onMouseOver$", "captures": false, "parent": "s_mYsiJcA4IBc" }, "s_uVE5iM9H73c": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "Link_component_a_onQVisible", "canonicalFilename": "s_uve5im9h73c", "hash": "uVE5iM9H73c", "ctxKind": "event", "ctxName": "onQVisible$", "captures": false, "parent": "s_mYsiJcA4IBc" }, "s_AaAlzKH0KlQ": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "QwikCity_component_useWatch", "canonicalFilename": "s_aaalzkh0klq", "hash": "AaAlzKH0KlQ", "ctxKind": "function", "ctxName": "useWatch$", "captures": true, "parent": "s_z1nvHyEppoI" }, "s_0i50F5e0ogw": { "origin": "components/head/head.tsx", "displayName": "Head_component", "canonicalFilename": "s_0i50f5e0ogw", "hash": "0i50F5e0ogw", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_3lb9EjxI5sA": { "origin": "components/footer/footer.tsx", "displayName": "footer_component", "canonicalFilename": "s_3lb9ejxi5sa", "hash": "3lb9EjxI5sA", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_3sccYCDd1Z0": { "origin": "root.tsx", "displayName": "root_component", "canonicalFilename": "s_3sccycdd1z0", "hash": "3sccYCDd1Z0", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_ATieUd9rr64": { "origin": "components/code/code.tsx", "displayName": "code_component", "canonicalFilename": "s_atieud9rr64", "hash": "ATieUd9rr64", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_UMfepLNAwco": { "origin": "components/blog/blog.tsx", "displayName": "blog_component", "canonicalFilename": "s_umfeplnawco", "hash": "UMfepLNAwco", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_VkLNXphUh5s": { "origin": "routes/layout.tsx", "displayName": "layout_component", "canonicalFilename": "s_vklnxphuh5s", "hash": "VkLNXphUh5s", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_ceU05TscGYE": { "origin": "components/header/header.tsx", "displayName": "header_component", "canonicalFilename": "s_ceu05tscgye", "hash": "ceU05TscGYE", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_mYsiJcA4IBc": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "Link_component", "canonicalFilename": "s_mysijca4ibc", "hash": "mYsiJcA4IBc", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_nd8yk3KO22c": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "RouterOutlet_component", "canonicalFilename": "s_nd8yk3ko22c", "hash": "nd8yk3KO22c", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_xYL1qOwPyDI": { "origin": "routes/index.tsx", "displayName": "routes_component", "canonicalFilename": "s_xyl1qowpydi", "hash": "xYL1qOwPyDI", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_z1nvHyEppoI": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "QwikCity_component", "canonicalFilename": "s_z1nvhyeppoi", "hash": "z1nvHyEppoI", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_0Q2jrWwUacs": { "origin": "components/header/header.tsx", "displayName": "header_component_useStyles", "canonicalFilename": "s_0q2jrwwuacs", "hash": "0Q2jrWwUacs", "ctxKind": "function", "ctxName": "useStyles$", "captures": false, "parent": "s_ceU05TscGYE" }, "s_Q1l36CAeHxI": { "origin": "routes/index.tsx", "displayName": "routes_component_useStyles", "canonicalFilename": "s_q1l36caehxi", "hash": "Q1l36CAeHxI", "ctxKind": "function", "ctxName": "useStyles$", "captures": false, "parent": "s_xYL1qOwPyDI" }, "s_WbM0SKvnb7c": { "origin": "components/footer/footer.tsx", "displayName": "footer_component_useStyles", "canonicalFilename": "s_wbm0skvnb7c", "hash": "WbM0SKvnb7c", "ctxKind": "function", "ctxName": "useStyles$", "captures": false, "parent": "s_3lb9EjxI5sA" }, "s_aQmKj4sFRTk": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_useStyles", "canonicalFilename": "s_aqmkj4sfrtk", "hash": "aQmKj4sFRTk", "ctxKind": "function", "ctxName": "useStyles$", "captures": false, "parent": "s_UMfepLNAwco" }, "s_zUgYTE7qoN8": { "origin": "components/code/code.tsx", "displayName": "code_component_useStyles", "canonicalFilename": "s_zugyte7qon8", "hash": "zUgYTE7qoN8", "ctxKind": "function", "ctxName": "useStyles$", "captures": false, "parent": "s_ATieUd9rr64" }, "s_BGvYONIOnD8": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_resource_useResource", "canonicalFilename": "s_bgvyoniond8", "hash": "BGvYONIOnD8", "ctxKind": "function", "ctxName": "useResource$", "captures": false, "parent": "s_UMfepLNAwco" } }, "mapping": { "s_hA9UPaY8sNQ": "q-6634d95b.js", "s_8mBQQVmYojM": "q-84bbb4c3.js", "s_Px0Yd9X6E4c": "q-31578518.js", "s_1LkXZU3Qtco": "q-31578518.js", "s_jQMbPE0xj0k": "q-84bbb4c3.js", "s_dZk00WzPwoI": "q-84bbb4c3.js", "s_rs0WpbGDNl0": "q-31578518.js", "s_FckIaHqEHdM": "q-31578518.js", "s_j6zpS0U8YDs": "q-84bbb4c3.js", "s_R5TcwUSphvc": "q-31578518.js", "s_rN2LCSZNBtk": "q-84bbb4c3.js", "s_JYoAI0TRKXY": "q-84bbb4c3.js", "s_Ua1bJ6lRcfk": "q-31578518.js", "s_ewnuO9PsR94": "q-84bbb4c3.js", "s_ezZV8h3VsoA": "q-31578518.js", "s_skxgNVWVOT8": "q-6634d95b.js", "s_uVE5iM9H73c": "q-6634d95b.js", "s_AaAlzKH0KlQ": "q-b7605040.js", "s_0i50F5e0ogw": "q-5a8d4479.js", "s_3lb9EjxI5sA": "q-897edc90.js", "s_3sccYCDd1Z0": "q-b9c8eefc.js", "s_ATieUd9rr64": "q-31578518.js", "s_UMfepLNAwco": "q-84bbb4c3.js", "s_VkLNXphUh5s": "q-5942cbf1.js", "s_ceU05TscGYE": "q-77f87add.js", "s_mYsiJcA4IBc": "q-6634d95b.js", "s_nd8yk3KO22c": "q-5fc4b8a3.js", "s_xYL1qOwPyDI": "q-64f35823.js", "s_z1nvHyEppoI": "q-b7605040.js", "s_0Q2jrWwUacs": "q-77f87add.js", "s_Q1l36CAeHxI": "q-64f35823.js", "s_WbM0SKvnb7c": "q-897edc90.js", "s_aQmKj4sFRTk": "q-84bbb4c3.js", "s_zUgYTE7qoN8": "q-31578518.js", "s_BGvYONIOnD8": "q-84bbb4c3.js" }, "bundles": { "q-0573ea2c.js": { "size": 208, "imports": ["q-1a120293.js"], "dynamicImports": ["q-64f35823.js"], "origins": ["src/routes/index.js"] }, "q-143c7194.js": { "size": 2180, "origins": ["node_modules/@builder.io/qwik-city/service-worker.mjs", "src/routes/service-worker.js"] }, "q-14ed54c8.js": { "size": 158, "imports": ["q-1a120293.js"], "dynamicImports": ["q-5942cbf1.js"], "origins": ["src/routes/layout.js"] }, "q-1a120293.js": { "size": 34498, "dynamicImports": ["q-b9c8eefc.js"], "origins": ["\0vite/preload-helper", "node_modules/@builder.io/qwik/core.min.mjs", "src/global.css", "src/root.js"] }, "q-31578518.js": { "size": 6899, "imports": ["q-1a120293.js"], "origins": ["src/components/code/code.css?used&inline", "src/entry_code.js", "src/s_1lkxzu3qtco.js", "src/s_atieud9rr64.js", "src/s_ezzv8h3vsoa.js", "src/s_fckiahqehdm.js", "src/s_px0yd9x6e4c.js", "src/s_r5tcwusphvc.js", "src/s_rs0wpbgdnl0.js", "src/s_ua1bj6lrcfk.js", "src/s_zugyte7qon8.js"], "symbols": ["s_1LkXZU3Qtco", "s_ATieUd9rr64", "s_ezZV8h3VsoA", "s_FckIaHqEHdM", "s_Px0Yd9X6E4c", "s_R5TcwUSphvc", "s_rs0WpbGDNl0", "s_Ua1bJ6lRcfk", "s_zUgYTE7qoN8"] }, "q-5942cbf1.js": { "size": 331, "imports": ["q-1a120293.js"], "dynamicImports": ["q-77f87add.js", "q-897edc90.js"], "origins": ["src/components/footer/footer.js", "src/components/header/header.js", "src/entry_layout.js", "src/s_vklnxphuh5s.js"], "symbols": ["s_VkLNXphUh5s"] }, "q-5a8d4479.js": { "size": 508, "imports": ["q-1a120293.js", "q-b9c8eefc.js"], "origins": ["src/entry_Head.js", "src/s_0i50f5e0ogw.js"], "symbols": ["s_0i50F5e0ogw"] }, "q-5ce5a16b.js": { "size": 58, "imports": ["q-1a120293.js"] }, "q-5fc4b8a3.js": { "size": 269, "imports": ["q-1a120293.js", "q-b9c8eefc.js"], "origins": ["src/entry_RouterOutlet.js", "src/s_nd8yk3ko22c.js"], "symbols": ["s_nd8yk3KO22c"] }, "q-64f35823.js": { "size": 1679, "imports": ["q-1a120293.js"], "dynamicImports": ["q-31578518.js", "q-84bbb4c3.js"], "origins": ["src/components/blog/blog.js", "src/components/code/code.js", "src/entry_routes.js", "src/routes/index.css?used", "src/s_q1l36caehxi.js", "src/s_xyl1qowpydi.js"], "symbols": ["s_Q1l36CAeHxI", "s_xYL1qOwPyDI"] }, "q-6634d95b.js": { "size": 891, "imports": ["q-1a120293.js", "q-b9c8eefc.js"], "origins": ["src/entry_Link.js", "src/s_ha9upay8snq.js", "src/s_mysijca4ibc.js", "src/s_skxgnvwvot8.js", "src/s_uve5im9h73c.js"], "symbols": ["s_hA9UPaY8sNQ", "s_mYsiJcA4IBc", "s_skxgNVWVOT8", "s_uVE5iM9H73c"] }, "q-77f87add.js": { "size": 1289, "imports": ["q-1a120293.js", "q-b9c8eefc.js"], "origins": ["src/components/header/header.css?used&inline", "src/entry_header.js", "src/s_0q2jrwwuacs.js", "src/s_ceu05tscgye.js"], "symbols": ["s_0Q2jrWwUacs", "s_ceU05TscGYE"] }, "q-84bbb4c3.js": { "size": 3871, "imports": ["q-1a120293.js", "q-64f35823.js"], "origins": ["src/components/blog/blog.css?used&inline", "src/entry_blog.js", "src/s_8mbqqvmyojm.js", "src/s_aqmkj4sfrtk.js", "src/s_bgvyoniond8.js", "src/s_dzk00wzpwoi.js", "src/s_ewnuo9psr94.js", "src/s_j6zps0u8yds.js", "src/s_jqmbpe0xj0k.js", "src/s_jyoai0trkxy.js", "src/s_rn2lcsznbtk.js", "src/s_umfeplnawco.js"], "symbols": ["s_8mBQQVmYojM", "s_aQmKj4sFRTk", "s_BGvYONIOnD8", "s_dZk00WzPwoI", "s_ewnuO9PsR94", "s_j6zpS0U8YDs", "s_jQMbPE0xj0k", "s_JYoAI0TRKXY", "s_rN2LCSZNBtk", "s_UMfepLNAwco"] }, "q-897edc90.js": { "size": 777, "imports": ["q-1a120293.js"], "origins": ["src/components/footer/footer.css?used&inline", "src/entry_footer.js", "src/s_3lb9ejxi5sa.js", "src/s_wbm0skvnb7c.js"], "symbols": ["s_3lb9EjxI5sA", "s_WbM0SKvnb7c"] }, "q-90ac544d.js": { "size": 128, "imports": ["q-1a120293.js"], "dynamicImports": ["q-143c7194.js"], "origins": ["@qwik-city-entries"] }, "q-b7605040.js": { "size": 1489, "imports": ["q-1a120293.js", "q-b9c8eefc.js"], "dynamicImports": ["q-fdb4e85d.js"], "origins": ["@builder.io/qwik/build", "src/entry_QwikCity.js", "src/s_aaalzkh0klq.js", "src/s_z1nvhyeppoi.js"], "symbols": ["s_AaAlzKH0KlQ", "s_z1nvHyEppoI"] }, "q-b9c8eefc.js": { "size": 4421, "imports": ["q-1a120293.js"], "dynamicImports": ["q-5a8d4479.js", "q-5fc4b8a3.js", "q-6634d95b.js", "q-b7605040.js", "q-fdb4e85d.js"], "origins": ["node_modules/@builder.io/qwik-city/index.qwik.mjs", "src/components/head/head.js", "src/entry_root.js", "src/s_3sccycdd1z0.js"], "symbols": ["s_3sccYCDd1Z0"] }, "q-fdb4e85d.js": { "size": 346, "imports": ["q-1a120293.js"], "dynamicImports": ["q-0573ea2c.js", "q-14ed54c8.js", "q-90ac544d.js"], "origins": ["@qwik-city-plan"] } }, "injections": [{ "tag": "link", "location": "head", "attributes": { "rel": "stylesheet", "href": "/build/q-5c70af2b.css" } }, { "tag": "link", "location": "head", "attributes": { "rel": "stylesheet", "href": "/build/q-c4e15d4b.css" } }], "version": "1", "options": { "target": "client", "buildMode": "production", "forceFullBuild": true, "entryStrategy": { "type": "smart" } }, "platform": { "qwik": "0.9.0", "vite": "", "rollup": "2.78.1", "env": "node", "os": "darwin", "node": "16.17.0" } };
+const Head = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
   const head2 = useDocumentHead();
   const loc = useLocation();
-  return /* @__PURE__ */ jsx(Fragment, {
+  return /* @__PURE__ */ jsx("head", {
     children: [
-      /* @__PURE__ */ jsx("title", {
-        children: head2.title
+      /* @__PURE__ */ jsx("meta", {
+        charSet: "utf-8"
       }),
-      /* @__PURE__ */ jsx("link", {
-        rel: "canonical",
-        href: loc.href
+      /* @__PURE__ */ jsx("title", {
+        children: head2.title ? `${head2.title} - Qwik` : `Qwik`
       }),
       /* @__PURE__ */ jsx("meta", {
         name: "viewport",
         content: "width=device-width, initial-scale=1.0"
       }),
       /* @__PURE__ */ jsx("link", {
-        rel: "icon",
-        type: "image/svg+xml",
-        href: "/favicon.svg"
-      }),
-      /* @__PURE__ */ jsx("link", {
-        rel: "preconnect",
-        href: "https://fonts.googleapis.com"
-      }),
-      /* @__PURE__ */ jsx("link", {
-        rel: "preconnect",
-        href: "https://fonts.gstatic.com",
-        crossOrigin: ""
-      }),
-      /* @__PURE__ */ jsx("link", {
-        href: "https://fonts.googleapis.com/css2?family=Poppins&display=swap",
-        rel: "stylesheet"
-      }),
-      /* @__PURE__ */ jsx("meta", {
-        property: "og:site_name",
-        content: "Qwik"
-      }),
-      /* @__PURE__ */ jsx("meta", {
-        name: "twitter:site",
-        content: "@QwikDev"
-      }),
-      /* @__PURE__ */ jsx("meta", {
-        name: "twitter:title",
-        content: "Qwik"
+        rel: "canonical",
+        href: loc.href
       }),
       head2.meta.map((m) => /* @__PURE__ */ jsx("meta", {
         ...m
@@ -5475,7 +5325,7 @@ const RouterHead = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
       }))
     ]
   });
-}, "s_zrbrqoaqXSY"));
+}, "s_0i50F5e0ogw"));
 const global$1 = "";
 const Root = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
   return /* @__PURE__ */ jsx(QwikCity, {
@@ -5485,7 +5335,7 @@ const Root = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
           /* @__PURE__ */ jsx("meta", {
             charSet: "utf-8"
           }),
-          /* @__PURE__ */ jsx(RouterHead, {})
+          /* @__PURE__ */ jsx(Head, {})
         ]
       }),
       /* @__PURE__ */ jsx("body", {
@@ -5505,18 +5355,18 @@ var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __propIsEnum = Object.prototype.propertyIsEnumerable;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __spreadValues = (a2, b) => {
+var __spreadValues = (a, b) => {
   for (var prop in b || (b = {}))
     if (__hasOwnProp.call(b, prop))
-      __defNormalProp(a2, prop, b[prop]);
+      __defNormalProp(a, prop, b[prop]);
   if (__getOwnPropSymbols)
     for (var prop of __getOwnPropSymbols(b)) {
       if (__propIsEnum.call(b, prop))
-        __defNormalProp(a2, prop, b[prop]);
+        __defNormalProp(a, prop, b[prop]);
     }
-  return a2;
+  return a;
 };
-var __spreadProps = (a2, b) => __defProps(a2, __getOwnPropDescs(b));
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 function render(opts) {
   return renderToStream(/* @__PURE__ */ jsx(Root, {}), __spreadProps(__spreadValues({
     manifest
