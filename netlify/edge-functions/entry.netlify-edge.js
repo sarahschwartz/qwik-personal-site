@@ -56,13 +56,6 @@ const useInvokeContext = () => {
   }
   return ctx.$hostElement$, ctx.$waitOn$, ctx.$renderCtx$, ctx.$subscriber$, ctx;
 };
-const useBindInvokeContext = (callback) => {
-  if (null == callback) {
-    return callback;
-  }
-  const ctx = getInvokeContext();
-  return (...args) => invoke(ctx, callback.bind(void 0, ...args));
-};
 const invoke = (context, fn, ...args) => {
   const previousContext = _context;
   let returnValue;
@@ -1958,41 +1951,6 @@ class Watch {
     this.$flags$ = $flags$, this.$index$ = $index$, this.$el$ = $el$, this.$qrl$ = $qrl$, this.$resource$ = $resource$;
   }
 }
-const useResourceQrl = (qrl, opts) => {
-  const { get, set, i, ctx } = useSequentialScope();
-  if (null != get) {
-    return get;
-  }
-  const containerState = ctx.$renderCtx$.$static$.$containerState$;
-  const resource = createResourceReturn(containerState, opts);
-  const el = ctx.$hostElement$;
-  const watch = new Watch(WatchFlagsIsDirty | WatchFlagsIsResource, i, el, qrl, resource);
-  const previousWait = Promise.all(ctx.$waitOn$.slice());
-  const elCtx = getContext(el);
-  return runResource(watch, containerState, previousWait), elCtx.$watches$ || (elCtx.$watches$ = []), elCtx.$watches$.push(watch), set(resource), resource;
-};
-const Resource = (props) => {
-  if (props.onRejected && (props.value.promise.catch(() => {
-  }), "rejected" === props.value.state)) {
-    return props.onRejected(props.value.error);
-  }
-  if (props.onPending) {
-    const state = props.value.state;
-    if ("pending" === state) {
-      return props.onPending();
-    }
-    if ("resolved" === state) {
-      return props.onResolved(props.value.resolved);
-    }
-    if ("rejected" === state) {
-      throw props.value.error;
-    }
-  }
-  const promise = props.value.promise.then(useBindInvokeContext(props.onResolved), useBindInvokeContext(props.onRejected));
-  return jsx(Fragment, {
-    children: promise
-  });
-};
 const _createResourceReturn = (opts) => ({
   __brand: "resource",
   promise: void 0,
@@ -2001,10 +1959,6 @@ const _createResourceReturn = (opts) => ({
   state: "pending",
   timeout: opts == null ? void 0 : opts.timeout
 });
-const createResourceReturn = (containerState, opts, initialPromise) => {
-  const result = _createResourceReturn(opts);
-  return result.promise = initialPromise, createProxy(result, containerState, 0, void 0);
-};
 const isResourceReturn = (obj) => isObject(obj) && "resource" === obj.__brand;
 const UNDEFINED_PREFIX = "";
 const QRLSerializer = {
@@ -3246,7 +3200,6 @@ const createDocumentHead = () => ({
   links: [],
   styles: []
 });
-const useDocumentHead = () => useContext(DocumentHeadContext);
 const useLocation = () => useContext(RouteLocationContext);
 const useNavigate = () => useContext(RouteNavigateContext);
 const useQwikCityEnv = () => noSerialize(useEnvData("qwikcity"));
@@ -3543,9 +3496,9 @@ const Layout_ = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePrope
   __proto__: null,
   default: layout
 }, Symbol.toStringTag, { value: "Module" }));
-const styles$2 = ".blog-tag{\n    background-color: #A6D99E;\n}\n\n.blog-card-image{\n    width: 100%;\n    margin-top: 1rem;\n}\n\n@media (prefers-color-scheme: dark) {\n	.blog-tag{\n        background-color: #0b4429;\n    }\n  }";
+const styles$2 = ".blog-tag{\n    background-color: #A6D99E;\n}\n\n.blog-card-image{\n    width: 100%;\n    margin-top: 1rem;\n}\n\n.blog-slide {\n    min-width: 250px;\n}\n\n@media (prefers-color-scheme: dark) {\n	.blog-tag{\n        background-color: #0b4429;\n    }\n  }";
 const Blog = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
-  useStylesQrl(inlinedQrl(styles$2, "s_aQmKj4sFRTk"));
+  useStylesQrl(inlinedQrl(styles$2, "s_kOv6mETxsJQ"));
   const state = useStore({
     isDragging: false,
     startPos: 0,
@@ -3554,10 +3507,17 @@ const Blog = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
     animationID: 0,
     currentIndex: 0
   });
-  const resource = useResourceQrl(inlinedQrl(async () => {
-    const value = await onGet();
-    return value;
-  }, "s_BGvYONIOnD8"));
+  const blogs = [
+    {
+      title: "Upload Files to IPFS with Next.js and Web3.Storage",
+      slug: "upload-files-to-ipfs-with-nextjs-and-web3storage",
+      brief: "What is IPFS?\nIPFS stands for InterPlanetary File System. It's a decentralized peer-to-peer file storage network that anyone can use to store files and data. IPFS was developed by Protocol Labs.\nWhat is Web3.Storage?\nWeb3.Storage is a service that pr...",
+      coverImage: "https://cdn.hashnode.com/res/hashnode/image/upload/v1661813174861/J_Mw9klLm.png"
+    },
+    {
+      brief: "More to come..."
+    }
+  ];
   return /* @__PURE__ */ jsx("div", {
     id: "blog",
     children: [
@@ -3567,170 +3527,127 @@ const Blog = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
       /* @__PURE__ */ jsx("div", {
         class: state.isDragging ? "slider-container grabbing" : "slider-container",
         style: `transform: translateX(${state.currentTranslate * 1.0045}px);`,
-        children: /* @__PURE__ */ jsx(Resource, {
-          value: resource,
-          onResolved: (blogs) => /* @__PURE__ */ jsx(Fragment, {
-            children: blogs.data.user.publication.posts.map((post, index2) => /* @__PURE__ */ jsx("div", {
-              onMouseMove$: inlinedQrl((event) => {
-                const [state2] = useLexicalScope();
-                if (state2.isDragging) {
-                  const currentPosition = event.pageX;
-                  state2.currentTranslate = state2.prevTranslate + currentPosition - state2.startPos;
-                }
-              }, "s_JYoAI0TRKXY", [
-                state
-              ]),
-              onMouseUp$: inlinedQrl(() => {
-                const [blogs2, state2] = useLexicalScope();
-                state2.isDragging = false;
-                cancelAnimationFrame(state2.animationID);
-                const movedBy = state2.currentTranslate - state2.prevTranslate;
-                if (movedBy < -100 && state2.currentIndex < blogs2.data.user.publication.posts.length - 1)
-                  state2.currentIndex++;
-                if (movedBy > 100 && state2.currentIndex > 0)
-                  state2.currentIndex--;
-                state2.currentTranslate = state2.currentIndex * -window.innerWidth;
-                state2.prevTranslate = state2.currentTranslate;
-              }, "s_rN2LCSZNBtk", [
-                blogs,
-                state
-              ]),
-              onMouseLeave$: inlinedQrl(() => {
-                const [blogs2, state2] = useLexicalScope();
-                state2.isDragging = false;
-                cancelAnimationFrame(state2.animationID);
-                const movedBy = state2.currentTranslate - state2.prevTranslate;
-                if (movedBy < -100 && state2.currentIndex < blogs2.data.user.publication.posts.length - 1)
-                  state2.currentIndex++;
-                if (movedBy > 100 && state2.currentIndex > 0)
-                  state2.currentIndex--;
-                state2.currentTranslate = state2.currentIndex * -window.innerWidth;
-                state2.prevTranslate = state2.currentTranslate;
-              }, "s_ewnuO9PsR94", [
-                blogs,
-                state
-              ]),
-              onMouseDown$: inlinedQrl((event) => {
-                const [index3, state2] = useLexicalScope();
-                function animation() {
-                  if (state2.isDragging)
-                    requestAnimationFrame(animation);
-                }
-                state2.currentIndex = index3;
-                state2.startPos = event.pageX;
-                state2.isDragging = true;
-                state2.animationID = requestAnimationFrame(animation);
-              }, "s_j6zpS0U8YDs", [
-                index2,
-                state
-              ]),
-              onTouchMove$: inlinedQrl((event) => {
-                const [state2] = useLexicalScope();
-                if (state2.isDragging) {
-                  const currentPosition = event.touches[0].clientX;
-                  state2.currentTranslate = state2.prevTranslate + currentPosition - state2.startPos;
-                }
-              }, "s_dZk00WzPwoI", [
-                state
-              ]),
-              onTouchEnd$: inlinedQrl(() => {
-                const [blogs2, state2] = useLexicalScope();
-                state2.isDragging = false;
-                cancelAnimationFrame(state2.animationID);
-                const movedBy = state2.currentTranslate - state2.prevTranslate;
-                if (movedBy < -100 && state2.currentIndex < blogs2.data.user.publication.posts.length - 1)
-                  state2.currentIndex++;
-                if (movedBy > 100 && state2.currentIndex > 0)
-                  state2.currentIndex--;
-                state2.currentTranslate = state2.currentIndex * -window.innerWidth;
-                state2.prevTranslate = state2.currentTranslate;
-              }, "s_jQMbPE0xj0k", [
-                blogs,
-                state
-              ]),
-              onTouchStart$: inlinedQrl((event) => {
-                const [index3, state2] = useLexicalScope();
-                function animation() {
-                  if (state2.isDragging)
-                    requestAnimationFrame(animation);
-                }
-                state2.currentIndex = index3;
-                state2.startPos = event.touches[0].clientX;
-                state2.isDragging = true;
-                state2.animationID = requestAnimationFrame(animation);
-              }, "s_8mBQQVmYojM", [
-                index2,
-                state
-              ]),
-              class: "slide",
-              children: /* @__PURE__ */ jsx("div", {
-                class: "inner-slide",
+        children: blogs.map((post, index2) => /* @__PURE__ */ jsx("div", {
+          onMouseMove$: inlinedQrl((event) => {
+            const [state2] = useLexicalScope();
+            if (state2.isDragging) {
+              const currentPosition = event.pageX;
+              state2.currentTranslate = state2.prevTranslate + currentPosition - state2.startPos;
+            }
+          }, "s_ozJw7jJk8GA", [
+            state
+          ]),
+          onMouseUp$: inlinedQrl(() => {
+            const [blogs2, state2] = useLexicalScope();
+            state2.isDragging = false;
+            cancelAnimationFrame(state2.animationID);
+            const movedBy = state2.currentTranslate - state2.prevTranslate;
+            if (movedBy < -100 && state2.currentIndex < blogs2.length - 1)
+              state2.currentIndex++;
+            if (movedBy > 100 && state2.currentIndex > 0)
+              state2.currentIndex--;
+            state2.currentTranslate = state2.currentIndex * -window.innerWidth;
+            state2.prevTranslate = state2.currentTranslate;
+          }, "s_iZUvbDwpmC0", [
+            blogs,
+            state
+          ]),
+          onMouseLeave$: inlinedQrl(() => {
+            const [blogs2, state2] = useLexicalScope();
+            state2.isDragging = false;
+            cancelAnimationFrame(state2.animationID);
+            const movedBy = state2.currentTranslate - state2.prevTranslate;
+            if (movedBy < -100 && state2.currentIndex < blogs2.length - 1)
+              state2.currentIndex++;
+            if (movedBy > 100 && state2.currentIndex > 0)
+              state2.currentIndex--;
+            state2.currentTranslate = state2.currentIndex * -window.innerWidth;
+            state2.prevTranslate = state2.currentTranslate;
+          }, "s_uvflkcSqKfM", [
+            blogs,
+            state
+          ]),
+          onMouseDown$: inlinedQrl((event) => {
+            const [index3, state2] = useLexicalScope();
+            function animation() {
+              if (state2.isDragging)
+                requestAnimationFrame(animation);
+            }
+            state2.currentIndex = index3;
+            state2.startPos = event.pageX;
+            state2.isDragging = true;
+            state2.animationID = requestAnimationFrame(animation);
+          }, "s_o2HzaDO0MNw", [
+            index2,
+            state
+          ]),
+          onTouchMove$: inlinedQrl((event) => {
+            const [state2] = useLexicalScope();
+            if (state2.isDragging) {
+              const currentPosition = event.touches[0].clientX;
+              state2.currentTranslate = state2.prevTranslate + currentPosition - state2.startPos;
+            }
+          }, "s_oJ0J0QnZefw", [
+            state
+          ]),
+          onTouchEnd$: inlinedQrl(() => {
+            const [blogs2, state2] = useLexicalScope();
+            state2.isDragging = false;
+            cancelAnimationFrame(state2.animationID);
+            const movedBy = state2.currentTranslate - state2.prevTranslate;
+            if (movedBy < -100 && state2.currentIndex < blogs2.length - 1)
+              state2.currentIndex++;
+            if (movedBy > 100 && state2.currentIndex > 0)
+              state2.currentIndex--;
+            state2.currentTranslate = state2.currentIndex * -window.innerWidth;
+            state2.prevTranslate = state2.currentTranslate;
+          }, "s_IZ3RcXRO0A4", [
+            blogs,
+            state
+          ]),
+          onTouchStart$: inlinedQrl((event) => {
+            const [index3, state2] = useLexicalScope();
+            function animation() {
+              if (state2.isDragging)
+                requestAnimationFrame(animation);
+            }
+            state2.currentIndex = index3;
+            state2.startPos = event.touches[0].clientX;
+            state2.isDragging = true;
+            state2.animationID = requestAnimationFrame(animation);
+          }, "s_QlCjgu9ZKxw", [
+            index2,
+            state
+          ]),
+          class: "slide",
+          children: /* @__PURE__ */ jsx("div", {
+            class: "inner-slide blog-slide",
+            children: [
+              post.slug && /* @__PURE__ */ jsx("a", {
+                href: `https://schwartz.hashnode.dev/${post.slug}`,
+                target: "_blank",
                 children: [
-                  /* @__PURE__ */ jsx("a", {
-                    href: `https://schwartz.hashnode.dev/${post.slug}`,
-                    target: "_blank",
-                    children: [
-                      /* @__PURE__ */ jsx("h3", {
-                        children: post.title
-                      }),
-                      /* @__PURE__ */ jsx("img", {
-                        class: "blog-card-image",
-                        src: post.coverImage,
-                        alt: post.title
-                      })
-                    ]
+                  /* @__PURE__ */ jsx("h3", {
+                    children: post.title
                   }),
-                  /* @__PURE__ */ jsx("p", {
-                    class: "code-description",
-                    children: post.brief
+                  /* @__PURE__ */ jsx("img", {
+                    class: "blog-card-image",
+                    src: post.coverImage,
+                    alt: post.title
                   })
                 ]
+              }),
+              /* @__PURE__ */ jsx("p", {
+                class: "code-description",
+                children: post.brief
               })
-            }))
+            ]
           })
-        })
+        }))
       })
     ]
   });
-}, "s_UMfepLNAwco"));
-const onGet = async () => {
-  let responseJSON;
-  try {
-    const response = await fetch("https://api.hashnode.com/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        query: `
-        query myPosts {
-          user(username: "sarahschwartz") {
-            photo
-            blogHandle
-            publication {
-              posts(page: 0) {
-                title
-                brief
-                coverImage
-                slug
-                totalReactions
-                dateAdded
-              }
-            }
-          }
-        }
-          `
-      })
-    });
-    if (response.status !== 200)
-      console.log("Oops! Something went wrong.");
-    else
-      responseJSON = await response.json();
-  } catch (error) {
-    console.log("ERROR", error);
-  }
-  return responseJSON;
-};
+}, "s_dnN7VTFOX8Y"));
 const styles$1 = ".slider-container {\n	display: inline-flex;\n	overflow: hidden;\n	transform: translateX(0);\n	transition: transform 0.3s ease-out;\n	cursor: grab;\n	margin: 0 0 2rem 0;\n  }\n  \n  .slide {\n	margin: 2rem 0 0 0;\n	padding: 0;\n	max-height: 100vh;\n	width: 100vw;\n	display: flex;\n	flex-direction: column;\n	align-items: center;\n	user-select: none;\n  }\n  \n  .btn {\n	background-color: #2d4b5f;\n	color: #fff;\n	text-decoration: none;\n	padding: 1rem 1.5rem;\n	border-radius: 8px;\n  }\n  \n  .grabbing {\n	cursor: grabbing;\n  }\n  \n  .code-description {\n	padding: 0 1rem;\n  }\n\n  .buttons-container{\n	display: flex;\n	gap: 10px;\n	justify-content: center;\n	margin-bottom: 2rem;\n  }\n\n  .inner-slide{\n	background-color: #f1eeee;\n	border-radius: 16px;\n	padding: 2rem;\n	max-width: 500px;\n  }\n\n  \n\n  .tags-container{\n	list-style: none;\n	display: flex;\n	gap: 10px;\n	flex-wrap: wrap;\n	margin-top: 2rem;\n	font-family: Trebuchet, sans-serif;\n  }\n\n  .tag{\n	border-radius: 16px;\n	padding: 10px 20px;\n  }\n\n  .code-tag{\n	background-color: #9ECED9;\n  }\n\n  ul {\n	padding-inline-start: 0;\n  }\n\n  @media (prefers-color-scheme: dark) {\n	.inner-slide{\n		background-color: #211e1e;\n	  }\n	  .code-tag{\n		background-color: #155462;\n	  }\n  }";
 const Code = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
   useStylesQrl(inlinedQrl(styles$1, "s_zUgYTE7qoN8"));
@@ -4008,7 +3925,7 @@ const Index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
 }, Symbol.toStringTag, { value: "Module" }));
 const Layout = () => Layout_;
 const routes = [
-  [/^\/$/, [Layout, () => Index], void 0, "/", ["q-14ed54c8.js", "q-0573ea2c.js"]]
+  [/^\/$/, [Layout, () => Index], void 0, "/", ["q-497ce096.js", "q-23604085.js"]]
 ];
 const menus = [];
 const trailingSlash = false;
@@ -5293,50 +5210,15 @@ function collectRenderSymbols(renderSymbols, elements) {
     }
   }
 }
-const manifest = { "symbols": { "s_hA9UPaY8sNQ": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "Link_component_a_onClick", "canonicalFilename": "s_ha9upay8snq", "hash": "hA9UPaY8sNQ", "ctxKind": "event", "ctxName": "onClick$", "captures": true, "parent": "s_mYsiJcA4IBc" }, "s_8mBQQVmYojM": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onTouchStart", "canonicalFilename": "s_8mbqqvmyojm", "hash": "8mBQQVmYojM", "ctxKind": "event", "ctxName": "onTouchStart$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_Px0Yd9X6E4c": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onTouchStart", "canonicalFilename": "s_px0yd9x6e4c", "hash": "Px0Yd9X6E4c", "ctxKind": "event", "ctxName": "onTouchStart$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_1LkXZU3Qtco": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onTouchEnd", "canonicalFilename": "s_1lkxzu3qtco", "hash": "1LkXZU3Qtco", "ctxKind": "event", "ctxName": "onTouchEnd$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_jQMbPE0xj0k": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onTouchEnd", "canonicalFilename": "s_jqmbpe0xj0k", "hash": "jQMbPE0xj0k", "ctxKind": "event", "ctxName": "onTouchEnd$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_dZk00WzPwoI": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onTouchMove", "canonicalFilename": "s_dzk00wzpwoi", "hash": "dZk00WzPwoI", "ctxKind": "event", "ctxName": "onTouchMove$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_rs0WpbGDNl0": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onTouchMove", "canonicalFilename": "s_rs0wpbgdnl0", "hash": "rs0WpbGDNl0", "ctxKind": "event", "ctxName": "onTouchMove$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_FckIaHqEHdM": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onMouseDown", "canonicalFilename": "s_fckiahqehdm", "hash": "FckIaHqEHdM", "ctxKind": "event", "ctxName": "onMouseDown$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_j6zpS0U8YDs": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onMouseDown", "canonicalFilename": "s_j6zps0u8yds", "hash": "j6zpS0U8YDs", "ctxKind": "event", "ctxName": "onMouseDown$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_R5TcwUSphvc": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onMouseUp", "canonicalFilename": "s_r5tcwusphvc", "hash": "R5TcwUSphvc", "ctxKind": "event", "ctxName": "onMouseUp$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_rN2LCSZNBtk": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onMouseUp", "canonicalFilename": "s_rn2lcsznbtk", "hash": "rN2LCSZNBtk", "ctxKind": "event", "ctxName": "onMouseUp$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_JYoAI0TRKXY": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onMouseMove", "canonicalFilename": "s_jyoai0trkxy", "hash": "JYoAI0TRKXY", "ctxKind": "event", "ctxName": "onMouseMove$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_Ua1bJ6lRcfk": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onMouseMove", "canonicalFilename": "s_ua1bj6lrcfk", "hash": "Ua1bJ6lRcfk", "ctxKind": "event", "ctxName": "onMouseMove$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_ewnuO9PsR94": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onMouseLeave", "canonicalFilename": "s_ewnuo9psr94", "hash": "ewnuO9PsR94", "ctxKind": "event", "ctxName": "onMouseLeave$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_ezZV8h3VsoA": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onMouseLeave", "canonicalFilename": "s_ezzv8h3vsoa", "hash": "ezZV8h3VsoA", "ctxKind": "event", "ctxName": "onMouseLeave$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_skxgNVWVOT8": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "Link_component_a_onMouseOver", "canonicalFilename": "s_skxgnvwvot8", "hash": "skxgNVWVOT8", "ctxKind": "event", "ctxName": "onMouseOver$", "captures": false, "parent": "s_mYsiJcA4IBc" }, "s_uVE5iM9H73c": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "Link_component_a_onQVisible", "canonicalFilename": "s_uve5im9h73c", "hash": "uVE5iM9H73c", "ctxKind": "event", "ctxName": "onQVisible$", "captures": false, "parent": "s_mYsiJcA4IBc" }, "s_AaAlzKH0KlQ": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "QwikCity_component_useWatch", "canonicalFilename": "s_aaalzkh0klq", "hash": "AaAlzKH0KlQ", "ctxKind": "function", "ctxName": "useWatch$", "captures": true, "parent": "s_z1nvHyEppoI" }, "s_0i50F5e0ogw": { "origin": "components/head/head.tsx", "displayName": "Head_component", "canonicalFilename": "s_0i50f5e0ogw", "hash": "0i50F5e0ogw", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_3lb9EjxI5sA": { "origin": "components/footer/footer.tsx", "displayName": "footer_component", "canonicalFilename": "s_3lb9ejxi5sa", "hash": "3lb9EjxI5sA", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_3sccYCDd1Z0": { "origin": "root.tsx", "displayName": "root_component", "canonicalFilename": "s_3sccycdd1z0", "hash": "3sccYCDd1Z0", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_ATieUd9rr64": { "origin": "components/code/code.tsx", "displayName": "code_component", "canonicalFilename": "s_atieud9rr64", "hash": "ATieUd9rr64", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_UMfepLNAwco": { "origin": "components/blog/blog.tsx", "displayName": "blog_component", "canonicalFilename": "s_umfeplnawco", "hash": "UMfepLNAwco", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_VkLNXphUh5s": { "origin": "routes/layout.tsx", "displayName": "layout_component", "canonicalFilename": "s_vklnxphuh5s", "hash": "VkLNXphUh5s", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_ceU05TscGYE": { "origin": "components/header/header.tsx", "displayName": "header_component", "canonicalFilename": "s_ceu05tscgye", "hash": "ceU05TscGYE", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_mYsiJcA4IBc": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "Link_component", "canonicalFilename": "s_mysijca4ibc", "hash": "mYsiJcA4IBc", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_nd8yk3KO22c": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "RouterOutlet_component", "canonicalFilename": "s_nd8yk3ko22c", "hash": "nd8yk3KO22c", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_xYL1qOwPyDI": { "origin": "routes/index.tsx", "displayName": "routes_component", "canonicalFilename": "s_xyl1qowpydi", "hash": "xYL1qOwPyDI", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_z1nvHyEppoI": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "QwikCity_component", "canonicalFilename": "s_z1nvhyeppoi", "hash": "z1nvHyEppoI", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_0Q2jrWwUacs": { "origin": "components/header/header.tsx", "displayName": "header_component_useStyles", "canonicalFilename": "s_0q2jrwwuacs", "hash": "0Q2jrWwUacs", "ctxKind": "function", "ctxName": "useStyles$", "captures": false, "parent": "s_ceU05TscGYE" }, "s_Q1l36CAeHxI": { "origin": "routes/index.tsx", "displayName": "routes_component_useStyles", "canonicalFilename": "s_q1l36caehxi", "hash": "Q1l36CAeHxI", "ctxKind": "function", "ctxName": "useStyles$", "captures": false, "parent": "s_xYL1qOwPyDI" }, "s_WbM0SKvnb7c": { "origin": "components/footer/footer.tsx", "displayName": "footer_component_useStyles", "canonicalFilename": "s_wbm0skvnb7c", "hash": "WbM0SKvnb7c", "ctxKind": "function", "ctxName": "useStyles$", "captures": false, "parent": "s_3lb9EjxI5sA" }, "s_aQmKj4sFRTk": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_useStyles", "canonicalFilename": "s_aqmkj4sfrtk", "hash": "aQmKj4sFRTk", "ctxKind": "function", "ctxName": "useStyles$", "captures": false, "parent": "s_UMfepLNAwco" }, "s_zUgYTE7qoN8": { "origin": "components/code/code.tsx", "displayName": "code_component_useStyles", "canonicalFilename": "s_zugyte7qon8", "hash": "zUgYTE7qoN8", "ctxKind": "function", "ctxName": "useStyles$", "captures": false, "parent": "s_ATieUd9rr64" }, "s_BGvYONIOnD8": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_resource_useResource", "canonicalFilename": "s_bgvyoniond8", "hash": "BGvYONIOnD8", "ctxKind": "function", "ctxName": "useResource$", "captures": false, "parent": "s_UMfepLNAwco" } }, "mapping": { "s_hA9UPaY8sNQ": "q-6634d95b.js", "s_8mBQQVmYojM": "q-84bbb4c3.js", "s_Px0Yd9X6E4c": "q-31578518.js", "s_1LkXZU3Qtco": "q-31578518.js", "s_jQMbPE0xj0k": "q-84bbb4c3.js", "s_dZk00WzPwoI": "q-84bbb4c3.js", "s_rs0WpbGDNl0": "q-31578518.js", "s_FckIaHqEHdM": "q-31578518.js", "s_j6zpS0U8YDs": "q-84bbb4c3.js", "s_R5TcwUSphvc": "q-31578518.js", "s_rN2LCSZNBtk": "q-84bbb4c3.js", "s_JYoAI0TRKXY": "q-84bbb4c3.js", "s_Ua1bJ6lRcfk": "q-31578518.js", "s_ewnuO9PsR94": "q-84bbb4c3.js", "s_ezZV8h3VsoA": "q-31578518.js", "s_skxgNVWVOT8": "q-6634d95b.js", "s_uVE5iM9H73c": "q-6634d95b.js", "s_AaAlzKH0KlQ": "q-b7605040.js", "s_0i50F5e0ogw": "q-5a8d4479.js", "s_3lb9EjxI5sA": "q-897edc90.js", "s_3sccYCDd1Z0": "q-b9c8eefc.js", "s_ATieUd9rr64": "q-31578518.js", "s_UMfepLNAwco": "q-84bbb4c3.js", "s_VkLNXphUh5s": "q-5942cbf1.js", "s_ceU05TscGYE": "q-77f87add.js", "s_mYsiJcA4IBc": "q-6634d95b.js", "s_nd8yk3KO22c": "q-5fc4b8a3.js", "s_xYL1qOwPyDI": "q-64f35823.js", "s_z1nvHyEppoI": "q-b7605040.js", "s_0Q2jrWwUacs": "q-77f87add.js", "s_Q1l36CAeHxI": "q-64f35823.js", "s_WbM0SKvnb7c": "q-897edc90.js", "s_aQmKj4sFRTk": "q-84bbb4c3.js", "s_zUgYTE7qoN8": "q-31578518.js", "s_BGvYONIOnD8": "q-84bbb4c3.js" }, "bundles": { "q-0573ea2c.js": { "size": 208, "imports": ["q-1a120293.js"], "dynamicImports": ["q-64f35823.js"], "origins": ["src/routes/index.js"] }, "q-143c7194.js": { "size": 2180, "origins": ["node_modules/@builder.io/qwik-city/service-worker.mjs", "src/routes/service-worker.js"] }, "q-14ed54c8.js": { "size": 158, "imports": ["q-1a120293.js"], "dynamicImports": ["q-5942cbf1.js"], "origins": ["src/routes/layout.js"] }, "q-1a120293.js": { "size": 34498, "dynamicImports": ["q-b9c8eefc.js"], "origins": ["\0vite/preload-helper", "node_modules/@builder.io/qwik/core.min.mjs", "src/global.css", "src/root.js"] }, "q-31578518.js": { "size": 6899, "imports": ["q-1a120293.js"], "origins": ["src/components/code/code.css?used&inline", "src/entry_code.js", "src/s_1lkxzu3qtco.js", "src/s_atieud9rr64.js", "src/s_ezzv8h3vsoa.js", "src/s_fckiahqehdm.js", "src/s_px0yd9x6e4c.js", "src/s_r5tcwusphvc.js", "src/s_rs0wpbgdnl0.js", "src/s_ua1bj6lrcfk.js", "src/s_zugyte7qon8.js"], "symbols": ["s_1LkXZU3Qtco", "s_ATieUd9rr64", "s_ezZV8h3VsoA", "s_FckIaHqEHdM", "s_Px0Yd9X6E4c", "s_R5TcwUSphvc", "s_rs0WpbGDNl0", "s_Ua1bJ6lRcfk", "s_zUgYTE7qoN8"] }, "q-5942cbf1.js": { "size": 331, "imports": ["q-1a120293.js"], "dynamicImports": ["q-77f87add.js", "q-897edc90.js"], "origins": ["src/components/footer/footer.js", "src/components/header/header.js", "src/entry_layout.js", "src/s_vklnxphuh5s.js"], "symbols": ["s_VkLNXphUh5s"] }, "q-5a8d4479.js": { "size": 508, "imports": ["q-1a120293.js", "q-b9c8eefc.js"], "origins": ["src/entry_Head.js", "src/s_0i50f5e0ogw.js"], "symbols": ["s_0i50F5e0ogw"] }, "q-5ce5a16b.js": { "size": 58, "imports": ["q-1a120293.js"] }, "q-5fc4b8a3.js": { "size": 269, "imports": ["q-1a120293.js", "q-b9c8eefc.js"], "origins": ["src/entry_RouterOutlet.js", "src/s_nd8yk3ko22c.js"], "symbols": ["s_nd8yk3KO22c"] }, "q-64f35823.js": { "size": 1679, "imports": ["q-1a120293.js"], "dynamicImports": ["q-31578518.js", "q-84bbb4c3.js"], "origins": ["src/components/blog/blog.js", "src/components/code/code.js", "src/entry_routes.js", "src/routes/index.css?used", "src/s_q1l36caehxi.js", "src/s_xyl1qowpydi.js"], "symbols": ["s_Q1l36CAeHxI", "s_xYL1qOwPyDI"] }, "q-6634d95b.js": { "size": 891, "imports": ["q-1a120293.js", "q-b9c8eefc.js"], "origins": ["src/entry_Link.js", "src/s_ha9upay8snq.js", "src/s_mysijca4ibc.js", "src/s_skxgnvwvot8.js", "src/s_uve5im9h73c.js"], "symbols": ["s_hA9UPaY8sNQ", "s_mYsiJcA4IBc", "s_skxgNVWVOT8", "s_uVE5iM9H73c"] }, "q-77f87add.js": { "size": 1289, "imports": ["q-1a120293.js", "q-b9c8eefc.js"], "origins": ["src/components/header/header.css?used&inline", "src/entry_header.js", "src/s_0q2jrwwuacs.js", "src/s_ceu05tscgye.js"], "symbols": ["s_0Q2jrWwUacs", "s_ceU05TscGYE"] }, "q-84bbb4c3.js": { "size": 3871, "imports": ["q-1a120293.js", "q-64f35823.js"], "origins": ["src/components/blog/blog.css?used&inline", "src/entry_blog.js", "src/s_8mbqqvmyojm.js", "src/s_aqmkj4sfrtk.js", "src/s_bgvyoniond8.js", "src/s_dzk00wzpwoi.js", "src/s_ewnuo9psr94.js", "src/s_j6zps0u8yds.js", "src/s_jqmbpe0xj0k.js", "src/s_jyoai0trkxy.js", "src/s_rn2lcsznbtk.js", "src/s_umfeplnawco.js"], "symbols": ["s_8mBQQVmYojM", "s_aQmKj4sFRTk", "s_BGvYONIOnD8", "s_dZk00WzPwoI", "s_ewnuO9PsR94", "s_j6zpS0U8YDs", "s_jQMbPE0xj0k", "s_JYoAI0TRKXY", "s_rN2LCSZNBtk", "s_UMfepLNAwco"] }, "q-897edc90.js": { "size": 777, "imports": ["q-1a120293.js"], "origins": ["src/components/footer/footer.css?used&inline", "src/entry_footer.js", "src/s_3lb9ejxi5sa.js", "src/s_wbm0skvnb7c.js"], "symbols": ["s_3lb9EjxI5sA", "s_WbM0SKvnb7c"] }, "q-90ac544d.js": { "size": 128, "imports": ["q-1a120293.js"], "dynamicImports": ["q-143c7194.js"], "origins": ["@qwik-city-entries"] }, "q-b7605040.js": { "size": 1489, "imports": ["q-1a120293.js", "q-b9c8eefc.js"], "dynamicImports": ["q-fdb4e85d.js"], "origins": ["@builder.io/qwik/build", "src/entry_QwikCity.js", "src/s_aaalzkh0klq.js", "src/s_z1nvhyeppoi.js"], "symbols": ["s_AaAlzKH0KlQ", "s_z1nvHyEppoI"] }, "q-b9c8eefc.js": { "size": 4421, "imports": ["q-1a120293.js"], "dynamicImports": ["q-5a8d4479.js", "q-5fc4b8a3.js", "q-6634d95b.js", "q-b7605040.js", "q-fdb4e85d.js"], "origins": ["node_modules/@builder.io/qwik-city/index.qwik.mjs", "src/components/head/head.js", "src/entry_root.js", "src/s_3sccycdd1z0.js"], "symbols": ["s_3sccYCDd1Z0"] }, "q-fdb4e85d.js": { "size": 346, "imports": ["q-1a120293.js"], "dynamicImports": ["q-0573ea2c.js", "q-14ed54c8.js", "q-90ac544d.js"], "origins": ["@qwik-city-plan"] } }, "injections": [{ "tag": "link", "location": "head", "attributes": { "rel": "stylesheet", "href": "/build/q-5c70af2b.css" } }, { "tag": "link", "location": "head", "attributes": { "rel": "stylesheet", "href": "/build/q-c4e15d4b.css" } }], "version": "1", "options": { "target": "client", "buildMode": "production", "forceFullBuild": true, "entryStrategy": { "type": "smart" } }, "platform": { "qwik": "0.9.0", "vite": "", "rollup": "2.78.1", "env": "node", "os": "darwin", "node": "16.17.0" } };
-const Head = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
-  const head2 = useDocumentHead();
-  const loc = useLocation();
-  return /* @__PURE__ */ jsx("head", {
-    children: [
-      /* @__PURE__ */ jsx("meta", {
-        charSet: "utf-8"
-      }),
-      /* @__PURE__ */ jsx("title", {
-        children: head2.title ? `${head2.title} - Qwik` : `Qwik`
-      }),
-      /* @__PURE__ */ jsx("meta", {
-        name: "viewport",
-        content: "width=device-width, initial-scale=1.0"
-      }),
-      /* @__PURE__ */ jsx("link", {
-        rel: "canonical",
-        href: loc.href
-      }),
-      head2.meta.map((m) => /* @__PURE__ */ jsx("meta", {
-        ...m
-      })),
-      head2.links.map((l) => /* @__PURE__ */ jsx("link", {
-        ...l
-      })),
-      head2.styles.map((s) => /* @__PURE__ */ jsx("style", {
-        ...s.props,
-        dangerouslySetInnerHTML: s.style
-      }))
-    ]
-  });
-}, "s_0i50F5e0ogw"));
+const manifest = { "symbols": { "s_hA9UPaY8sNQ": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "Link_component_a_onClick", "canonicalFilename": "s_ha9upay8snq", "hash": "hA9UPaY8sNQ", "ctxKind": "event", "ctxName": "onClick$", "captures": true, "parent": "s_mYsiJcA4IBc" }, "s_8mBQQVmYojM": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onTouchStart", "canonicalFilename": "s_8mbqqvmyojm", "hash": "8mBQQVmYojM", "ctxKind": "event", "ctxName": "onTouchStart$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_Px0Yd9X6E4c": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onTouchStart", "canonicalFilename": "s_px0yd9x6e4c", "hash": "Px0Yd9X6E4c", "ctxKind": "event", "ctxName": "onTouchStart$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_QlCjgu9ZKxw": { "origin": "components/static-blog/blog.tsx", "displayName": "blog_component_div_div_div_onTouchStart", "canonicalFilename": "s_qlcjgu9zkxw", "hash": "QlCjgu9ZKxw", "ctxKind": "event", "ctxName": "onTouchStart$", "captures": true, "parent": "s_dnN7VTFOX8Y" }, "s_1LkXZU3Qtco": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onTouchEnd", "canonicalFilename": "s_1lkxzu3qtco", "hash": "1LkXZU3Qtco", "ctxKind": "event", "ctxName": "onTouchEnd$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_IZ3RcXRO0A4": { "origin": "components/static-blog/blog.tsx", "displayName": "blog_component_div_div_div_onTouchEnd", "canonicalFilename": "s_iz3rcxro0a4", "hash": "IZ3RcXRO0A4", "ctxKind": "event", "ctxName": "onTouchEnd$", "captures": true, "parent": "s_dnN7VTFOX8Y" }, "s_jQMbPE0xj0k": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onTouchEnd", "canonicalFilename": "s_jqmbpe0xj0k", "hash": "jQMbPE0xj0k", "ctxKind": "event", "ctxName": "onTouchEnd$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_dZk00WzPwoI": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onTouchMove", "canonicalFilename": "s_dzk00wzpwoi", "hash": "dZk00WzPwoI", "ctxKind": "event", "ctxName": "onTouchMove$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_oJ0J0QnZefw": { "origin": "components/static-blog/blog.tsx", "displayName": "blog_component_div_div_div_onTouchMove", "canonicalFilename": "s_oj0j0qnzefw", "hash": "oJ0J0QnZefw", "ctxKind": "event", "ctxName": "onTouchMove$", "captures": true, "parent": "s_dnN7VTFOX8Y" }, "s_rs0WpbGDNl0": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onTouchMove", "canonicalFilename": "s_rs0wpbgdnl0", "hash": "rs0WpbGDNl0", "ctxKind": "event", "ctxName": "onTouchMove$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_FckIaHqEHdM": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onMouseDown", "canonicalFilename": "s_fckiahqehdm", "hash": "FckIaHqEHdM", "ctxKind": "event", "ctxName": "onMouseDown$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_j6zpS0U8YDs": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onMouseDown", "canonicalFilename": "s_j6zps0u8yds", "hash": "j6zpS0U8YDs", "ctxKind": "event", "ctxName": "onMouseDown$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_o2HzaDO0MNw": { "origin": "components/static-blog/blog.tsx", "displayName": "blog_component_div_div_div_onMouseDown", "canonicalFilename": "s_o2hzado0mnw", "hash": "o2HzaDO0MNw", "ctxKind": "event", "ctxName": "onMouseDown$", "captures": true, "parent": "s_dnN7VTFOX8Y" }, "s_R5TcwUSphvc": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onMouseUp", "canonicalFilename": "s_r5tcwusphvc", "hash": "R5TcwUSphvc", "ctxKind": "event", "ctxName": "onMouseUp$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_iZUvbDwpmC0": { "origin": "components/static-blog/blog.tsx", "displayName": "blog_component_div_div_div_onMouseUp", "canonicalFilename": "s_izuvbdwpmc0", "hash": "iZUvbDwpmC0", "ctxKind": "event", "ctxName": "onMouseUp$", "captures": true, "parent": "s_dnN7VTFOX8Y" }, "s_rN2LCSZNBtk": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onMouseUp", "canonicalFilename": "s_rn2lcsznbtk", "hash": "rN2LCSZNBtk", "ctxKind": "event", "ctxName": "onMouseUp$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_JYoAI0TRKXY": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onMouseMove", "canonicalFilename": "s_jyoai0trkxy", "hash": "JYoAI0TRKXY", "ctxKind": "event", "ctxName": "onMouseMove$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_Ua1bJ6lRcfk": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onMouseMove", "canonicalFilename": "s_ua1bj6lrcfk", "hash": "Ua1bJ6lRcfk", "ctxKind": "event", "ctxName": "onMouseMove$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_ozJw7jJk8GA": { "origin": "components/static-blog/blog.tsx", "displayName": "blog_component_div_div_div_onMouseMove", "canonicalFilename": "s_ozjw7jjk8ga", "hash": "ozJw7jJk8GA", "ctxKind": "event", "ctxName": "onMouseMove$", "captures": true, "parent": "s_dnN7VTFOX8Y" }, "s_ewnuO9PsR94": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_div_div_Resource_onResolved__Fragment_div_onMouseLeave", "canonicalFilename": "s_ewnuo9psr94", "hash": "ewnuO9PsR94", "ctxKind": "event", "ctxName": "onMouseLeave$", "captures": true, "parent": "s_UMfepLNAwco" }, "s_ezZV8h3VsoA": { "origin": "components/code/code.tsx", "displayName": "code_component_div_div_div_onMouseLeave", "canonicalFilename": "s_ezzv8h3vsoa", "hash": "ezZV8h3VsoA", "ctxKind": "event", "ctxName": "onMouseLeave$", "captures": true, "parent": "s_ATieUd9rr64" }, "s_uvflkcSqKfM": { "origin": "components/static-blog/blog.tsx", "displayName": "blog_component_div_div_div_onMouseLeave", "canonicalFilename": "s_uvflkcsqkfm", "hash": "uvflkcSqKfM", "ctxKind": "event", "ctxName": "onMouseLeave$", "captures": true, "parent": "s_dnN7VTFOX8Y" }, "s_skxgNVWVOT8": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "Link_component_a_onMouseOver", "canonicalFilename": "s_skxgnvwvot8", "hash": "skxgNVWVOT8", "ctxKind": "event", "ctxName": "onMouseOver$", "captures": false, "parent": "s_mYsiJcA4IBc" }, "s_uVE5iM9H73c": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "Link_component_a_onQVisible", "canonicalFilename": "s_uve5im9h73c", "hash": "uVE5iM9H73c", "ctxKind": "event", "ctxName": "onQVisible$", "captures": false, "parent": "s_mYsiJcA4IBc" }, "s_AaAlzKH0KlQ": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "QwikCity_component_useWatch", "canonicalFilename": "s_aaalzkh0klq", "hash": "AaAlzKH0KlQ", "ctxKind": "function", "ctxName": "useWatch$", "captures": true, "parent": "s_z1nvHyEppoI" }, "s_3lb9EjxI5sA": { "origin": "components/footer/footer.tsx", "displayName": "footer_component", "canonicalFilename": "s_3lb9ejxi5sa", "hash": "3lb9EjxI5sA", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_3sccYCDd1Z0": { "origin": "root.tsx", "displayName": "root_component", "canonicalFilename": "s_3sccycdd1z0", "hash": "3sccYCDd1Z0", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_ATieUd9rr64": { "origin": "components/code/code.tsx", "displayName": "code_component", "canonicalFilename": "s_atieud9rr64", "hash": "ATieUd9rr64", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_UMfepLNAwco": { "origin": "components/blog/blog.tsx", "displayName": "blog_component", "canonicalFilename": "s_umfeplnawco", "hash": "UMfepLNAwco", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_VkLNXphUh5s": { "origin": "routes/layout.tsx", "displayName": "layout_component", "canonicalFilename": "s_vklnxphuh5s", "hash": "VkLNXphUh5s", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_ceU05TscGYE": { "origin": "components/header/header.tsx", "displayName": "header_component", "canonicalFilename": "s_ceu05tscgye", "hash": "ceU05TscGYE", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_dnN7VTFOX8Y": { "origin": "components/static-blog/blog.tsx", "displayName": "blog_component", "canonicalFilename": "s_dnn7vtfox8y", "hash": "dnN7VTFOX8Y", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_mYsiJcA4IBc": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "Link_component", "canonicalFilename": "s_mysijca4ibc", "hash": "mYsiJcA4IBc", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_nd8yk3KO22c": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "RouterOutlet_component", "canonicalFilename": "s_nd8yk3ko22c", "hash": "nd8yk3KO22c", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_xYL1qOwPyDI": { "origin": "routes/index.tsx", "displayName": "routes_component", "canonicalFilename": "s_xyl1qowpydi", "hash": "xYL1qOwPyDI", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_z1nvHyEppoI": { "origin": "../node_modules/@builder.io/qwik-city/index.qwik.mjs", "displayName": "QwikCity_component", "canonicalFilename": "s_z1nvhyeppoi", "hash": "z1nvHyEppoI", "ctxKind": "function", "ctxName": "component$", "captures": false, "parent": null }, "s_0Q2jrWwUacs": { "origin": "components/header/header.tsx", "displayName": "header_component_useStyles", "canonicalFilename": "s_0q2jrwwuacs", "hash": "0Q2jrWwUacs", "ctxKind": "function", "ctxName": "useStyles$", "captures": false, "parent": "s_ceU05TscGYE" }, "s_Q1l36CAeHxI": { "origin": "routes/index.tsx", "displayName": "routes_component_useStyles", "canonicalFilename": "s_q1l36caehxi", "hash": "Q1l36CAeHxI", "ctxKind": "function", "ctxName": "useStyles$", "captures": false, "parent": "s_xYL1qOwPyDI" }, "s_WbM0SKvnb7c": { "origin": "components/footer/footer.tsx", "displayName": "footer_component_useStyles", "canonicalFilename": "s_wbm0skvnb7c", "hash": "WbM0SKvnb7c", "ctxKind": "function", "ctxName": "useStyles$", "captures": false, "parent": "s_3lb9EjxI5sA" }, "s_aQmKj4sFRTk": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_useStyles", "canonicalFilename": "s_aqmkj4sfrtk", "hash": "aQmKj4sFRTk", "ctxKind": "function", "ctxName": "useStyles$", "captures": false, "parent": "s_UMfepLNAwco" }, "s_kOv6mETxsJQ": { "origin": "components/static-blog/blog.tsx", "displayName": "blog_component_useStyles", "canonicalFilename": "s_kov6metxsjq", "hash": "kOv6mETxsJQ", "ctxKind": "function", "ctxName": "useStyles$", "captures": false, "parent": "s_dnN7VTFOX8Y" }, "s_zUgYTE7qoN8": { "origin": "components/code/code.tsx", "displayName": "code_component_useStyles", "canonicalFilename": "s_zugyte7qon8", "hash": "zUgYTE7qoN8", "ctxKind": "function", "ctxName": "useStyles$", "captures": false, "parent": "s_ATieUd9rr64" }, "s_BGvYONIOnD8": { "origin": "components/blog/blog.tsx", "displayName": "blog_component_resource_useResource", "canonicalFilename": "s_bgvyoniond8", "hash": "BGvYONIOnD8", "ctxKind": "function", "ctxName": "useResource$", "captures": false, "parent": "s_UMfepLNAwco" } }, "mapping": { "s_hA9UPaY8sNQ": "q-41250c67.js", "s_8mBQQVmYojM": "q-0940fec0.js", "s_Px0Yd9X6E4c": "q-99d05b84.js", "s_QlCjgu9ZKxw": "q-0940fec0.js", "s_1LkXZU3Qtco": "q-99d05b84.js", "s_IZ3RcXRO0A4": "q-0940fec0.js", "s_jQMbPE0xj0k": "q-0940fec0.js", "s_dZk00WzPwoI": "q-0940fec0.js", "s_oJ0J0QnZefw": "q-0940fec0.js", "s_rs0WpbGDNl0": "q-99d05b84.js", "s_FckIaHqEHdM": "q-99d05b84.js", "s_j6zpS0U8YDs": "q-0940fec0.js", "s_o2HzaDO0MNw": "q-0940fec0.js", "s_R5TcwUSphvc": "q-99d05b84.js", "s_iZUvbDwpmC0": "q-0940fec0.js", "s_rN2LCSZNBtk": "q-0940fec0.js", "s_JYoAI0TRKXY": "q-0940fec0.js", "s_Ua1bJ6lRcfk": "q-99d05b84.js", "s_ozJw7jJk8GA": "q-0940fec0.js", "s_ewnuO9PsR94": "q-0940fec0.js", "s_ezZV8h3VsoA": "q-99d05b84.js", "s_uvflkcSqKfM": "q-0940fec0.js", "s_skxgNVWVOT8": "q-41250c67.js", "s_uVE5iM9H73c": "q-41250c67.js", "s_AaAlzKH0KlQ": "q-e9334bd1.js", "s_3lb9EjxI5sA": "q-f61ab6a9.js", "s_3sccYCDd1Z0": "q-04ca53b3.js", "s_ATieUd9rr64": "q-99d05b84.js", "s_UMfepLNAwco": "q-0940fec0.js", "s_VkLNXphUh5s": "q-ea0b4762.js", "s_ceU05TscGYE": "q-9797b5aa.js", "s_dnN7VTFOX8Y": "q-0940fec0.js", "s_mYsiJcA4IBc": "q-41250c67.js", "s_nd8yk3KO22c": "q-1c25bebd.js", "s_xYL1qOwPyDI": "q-bb184456.js", "s_z1nvHyEppoI": "q-e9334bd1.js", "s_0Q2jrWwUacs": "q-9797b5aa.js", "s_Q1l36CAeHxI": "q-bb184456.js", "s_WbM0SKvnb7c": "q-f61ab6a9.js", "s_aQmKj4sFRTk": "q-0940fec0.js", "s_kOv6mETxsJQ": "q-0940fec0.js", "s_zUgYTE7qoN8": "q-99d05b84.js", "s_BGvYONIOnD8": "q-0940fec0.js" }, "bundles": { "q-04ca53b3.js": { "size": 4311, "imports": ["q-43af61e6.js"], "dynamicImports": ["q-1c25bebd.js", "q-41250c67.js", "q-af2621ce.js", "q-e9334bd1.js"], "origins": ["node_modules/@builder.io/qwik-city/index.qwik.mjs", "src/entry_root.js", "src/s_3sccycdd1z0.js"], "symbols": ["s_3sccYCDd1Z0"] }, "q-0940fec0.js": { "size": 8579, "imports": ["q-43af61e6.js"], "origins": ["src/components/blog/blog.css?used&inline", "src/components/blog/blog.js", "src/components/static-blog/blog.css?used&inline", "src/entry_blog.js", "src/s_8mbqqvmyojm.js", "src/s_aqmkj4sfrtk.js", "src/s_bgvyoniond8.js", "src/s_dnn7vtfox8y.js", "src/s_dzk00wzpwoi.js", "src/s_ewnuo9psr94.js", "src/s_iz3rcxro0a4.js", "src/s_izuvbdwpmc0.js", "src/s_j6zps0u8yds.js", "src/s_jqmbpe0xj0k.js", "src/s_jyoai0trkxy.js", "src/s_kov6metxsjq.js", "src/s_o2hzado0mnw.js", "src/s_oj0j0qnzefw.js", "src/s_ozjw7jjk8ga.js", "src/s_qlcjgu9zkxw.js", "src/s_rn2lcsznbtk.js", "src/s_umfeplnawco.js", "src/s_uvflkcsqkfm.js"], "symbols": ["s_8mBQQVmYojM", "s_aQmKj4sFRTk", "s_BGvYONIOnD8", "s_dnN7VTFOX8Y", "s_dZk00WzPwoI", "s_ewnuO9PsR94", "s_IZ3RcXRO0A4", "s_iZUvbDwpmC0", "s_j6zpS0U8YDs", "s_jQMbPE0xj0k", "s_JYoAI0TRKXY", "s_kOv6mETxsJQ", "s_o2HzaDO0MNw", "s_oJ0J0QnZefw", "s_ozJw7jJk8GA", "s_QlCjgu9ZKxw", "s_rN2LCSZNBtk", "s_UMfepLNAwco", "s_uvflkcSqKfM"] }, "q-143c7194.js": { "size": 2180, "origins": ["node_modules/@builder.io/qwik-city/service-worker.mjs", "src/routes/service-worker.js"] }, "q-1c25bebd.js": { "size": 269, "imports": ["q-04ca53b3.js", "q-43af61e6.js"], "origins": ["src/entry_RouterOutlet.js", "src/s_nd8yk3ko22c.js"], "symbols": ["s_nd8yk3KO22c"] }, "q-23604085.js": { "size": 195, "imports": ["q-43af61e6.js"], "dynamicImports": ["q-bb184456.js"], "origins": ["src/routes/index.js"] }, "q-41250c67.js": { "size": 886, "imports": ["q-04ca53b3.js", "q-43af61e6.js"], "origins": ["src/entry_Link.js", "src/s_ha9upay8snq.js", "src/s_mysijca4ibc.js", "src/s_skxgnvwvot8.js", "src/s_uve5im9h73c.js"], "symbols": ["s_hA9UPaY8sNQ", "s_mYsiJcA4IBc", "s_skxgNVWVOT8", "s_uVE5iM9H73c"] }, "q-43af61e6.js": { "size": 34498, "dynamicImports": ["q-04ca53b3.js"], "origins": ["\0vite/preload-helper", "node_modules/@builder.io/qwik/core.min.mjs", "src/global.css", "src/root.js"] }, "q-497ce096.js": { "size": 158, "imports": ["q-43af61e6.js"], "dynamicImports": ["q-ea0b4762.js"], "origins": ["src/routes/layout.js"] }, "q-9797b5aa.js": { "size": 1289, "imports": ["q-04ca53b3.js", "q-43af61e6.js"], "origins": ["src/components/header/header.css?used&inline", "src/entry_header.js", "src/s_0q2jrwwuacs.js", "src/s_ceu05tscgye.js"], "symbols": ["s_0Q2jrWwUacs", "s_ceU05TscGYE"] }, "q-99d05b84.js": { "size": 6899, "imports": ["q-43af61e6.js"], "origins": ["src/components/code/code.css?used&inline", "src/entry_code.js", "src/s_1lkxzu3qtco.js", "src/s_atieud9rr64.js", "src/s_ezzv8h3vsoa.js", "src/s_fckiahqehdm.js", "src/s_px0yd9x6e4c.js", "src/s_r5tcwusphvc.js", "src/s_rs0wpbgdnl0.js", "src/s_ua1bj6lrcfk.js", "src/s_zugyte7qon8.js"], "symbols": ["s_1LkXZU3Qtco", "s_ATieUd9rr64", "s_ezZV8h3VsoA", "s_FckIaHqEHdM", "s_Px0Yd9X6E4c", "s_R5TcwUSphvc", "s_rs0WpbGDNl0", "s_Ua1bJ6lRcfk", "s_zUgYTE7qoN8"] }, "q-af2621ce.js": { "size": 346, "imports": ["q-43af61e6.js"], "dynamicImports": ["q-23604085.js", "q-497ce096.js", "q-de5c5739.js"], "origins": ["@qwik-city-plan"] }, "q-bb184456.js": { "size": 1045, "imports": ["q-43af61e6.js"], "dynamicImports": ["q-0940fec0.js", "q-99d05b84.js"], "origins": ["src/components/code/code.js", "src/components/static-blog/blog.js", "src/entry_routes.js", "src/routes/index.css?used", "src/s_q1l36caehxi.js", "src/s_xyl1qowpydi.js"], "symbols": ["s_Q1l36CAeHxI", "s_xYL1qOwPyDI"] }, "q-de5c5739.js": { "size": 128, "imports": ["q-43af61e6.js"], "dynamicImports": ["q-143c7194.js"], "origins": ["@qwik-city-entries"] }, "q-e4131281.js": { "size": 58, "imports": ["q-43af61e6.js"] }, "q-e9334bd1.js": { "size": 1489, "imports": ["q-04ca53b3.js", "q-43af61e6.js"], "dynamicImports": ["q-af2621ce.js"], "origins": ["@builder.io/qwik/build", "src/entry_QwikCity.js", "src/s_aaalzkh0klq.js", "src/s_z1nvhyeppoi.js"], "symbols": ["s_AaAlzKH0KlQ", "s_z1nvHyEppoI"] }, "q-ea0b4762.js": { "size": 331, "imports": ["q-43af61e6.js"], "dynamicImports": ["q-9797b5aa.js", "q-f61ab6a9.js"], "origins": ["src/components/footer/footer.js", "src/components/header/header.js", "src/entry_layout.js", "src/s_vklnxphuh5s.js"], "symbols": ["s_VkLNXphUh5s"] }, "q-f61ab6a9.js": { "size": 777, "imports": ["q-43af61e6.js"], "origins": ["src/components/footer/footer.css?used&inline", "src/entry_footer.js", "src/s_3lb9ejxi5sa.js", "src/s_wbm0skvnb7c.js"], "symbols": ["s_3lb9EjxI5sA", "s_WbM0SKvnb7c"] } }, "injections": [{ "tag": "link", "location": "head", "attributes": { "rel": "stylesheet", "href": "/build/q-5c70af2b.css" } }, { "tag": "link", "location": "head", "attributes": { "rel": "stylesheet", "href": "/build/q-c4e15d4b.css" } }], "version": "1", "options": { "target": "client", "buildMode": "production", "forceFullBuild": true, "entryStrategy": { "type": "smart" } }, "platform": { "qwik": "0.9.0", "vite": "", "rollup": "2.78.1", "env": "node", "os": "darwin", "node": "16.17.0" } };
 const global$1 = "";
 const Root = /* @__PURE__ */ componentQrl(inlinedQrl(() => {
   return /* @__PURE__ */ jsx(QwikCity, {
     children: [
       /* @__PURE__ */ jsx("head", {
-        children: [
-          /* @__PURE__ */ jsx("meta", {
-            charSet: "utf-8"
-          }),
-          /* @__PURE__ */ jsx(Head, {})
-        ]
+        children: /* @__PURE__ */ jsx("meta", {
+          charSet: "utf-8"
+        })
       }),
       /* @__PURE__ */ jsx("body", {
         lang: "en",

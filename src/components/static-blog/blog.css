@@ -1,0 +1,18 @@
+.blog-tag{
+    background-color: #A6D99E;
+}
+
+.blog-card-image{
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.blog-slide {
+    min-width: 250px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.blog-tag{
+        background-color: #0b4429;
+    }
+  }
