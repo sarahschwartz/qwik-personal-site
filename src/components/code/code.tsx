@@ -76,7 +76,7 @@ export default component$(() => {
       <h2>Code</h2>
       <div
         class={state.isDragging ? "slider-container grabbing" : "slider-container"}
-        style={ `transform: translateX(${state.currentTranslate * 1.0045}px);` }
+        style={ `transform: translateX(${state.currentTranslate}px);` }
       >
         {code.map((slide, index) => (
           <div

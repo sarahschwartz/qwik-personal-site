@@ -36,7 +36,7 @@ export default component$(() => {
         class={
           state.isDragging ? "slider-container grabbing" : "slider-container"
         }
-        style={`transform: translateX(${state.currentTranslate * 1.0045}px);`}
+        style={`transform: translateX(${state.currentTranslate}px);`}
       >
               {blogs.map(
                 (post, index: number) => (
